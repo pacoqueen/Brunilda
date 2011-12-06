@@ -1,12 +1,16 @@
-h1. Brunilda
+Brunilda
+========
 
-h2. About
+About
+-----
 A very small software to assign employees to workareas in a factory.
 
-h2. Authors
+Authors
+-------
 Francisco José Rodríguez Bogado <bogado@qinn.es>
 Graphics library based on hamster-applet (Toms Bauģis <toms.baugis@gmail.com> and Patryk Zawadzki <patrys@pld-linux.org>)
 
-h2. License
+License
+-------
 GPLv3. See COPIYNG.
 
