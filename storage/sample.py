@@ -39,7 +39,8 @@ def asignar_tareas_ejemplo(empleados, areas, aleatorio = False):
                             # significa que no sea aleatorio en abosluto.
     for e in empleados:
         for a in areas:
-            if random.randint(0, 1):    # Una de cada dos, más o menos...
+            #if random.randint(0, 1):    # Una de cada dos, más o menos...
+            if True: 
                 duracion = random.randrange(8, 13, 4) # 8 ó 12 horas de turno.
                 if duracion == 8:
                     hora = (6, 14, 22)[random.randrange(0, 3)]
@@ -48,7 +49,8 @@ def asignar_tareas_ejemplo(empleados, areas, aleatorio = False):
                 while True:
                     try:
                         f = dt.datetime(year = 2012, 
-                                        month = random.randint(1, 12), 
+                                        #month = random.randint(1, 12), 
+                                        month = random.randint(1, 2), 
                                         day = random.randint(1, 31), 
                                         hour = hora)
                     except ValueError:
@@ -82,3 +84,4 @@ def get_all_data_by_empleado():
         except KeyError:
             res[e] = [t]
     return res
+
