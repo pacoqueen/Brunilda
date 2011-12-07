@@ -26,6 +26,13 @@ class Tarea:
         self.fecha = fecha
         self.duracion = duracion
 
+    @property
+    def fin(self):
+        return self.fecha + self.duracion
+
+    @property
+    def ini(self):
+        return self.fecha
 
     def __solapa_horas(self, f, d):
         """
@@ -60,4 +67,11 @@ class Tarea:
                 solapada = True
                 break   # Evito iteraciones innecesarias.
         return solapada
+
+    def __str__(self):
+        return "%s en %s el %s de %s a %s." % (
+            self.empleado.nombre, self.area.nombre, 
+            self.fecha.strftime("%d/%m/%Y"),
+            self.fecha.strftime("%H:%M"), 
+            (self.fecha + self.duracion).strftime("%H:%M"))
 
