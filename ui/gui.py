@@ -30,8 +30,6 @@ class UNUSABLE_VentanaPorEmpleado(Ventana):
         self.ventana.set_title("Vista por empleado")
         #self.grafica.add(Scene(tareas))
         tareas.sort(key = lambda t: t.fecha)
-        for t in tareas:
-            print t
         oldest_fecha = tareas[2].fecha 
         dl = DayLine(start_time = oldest_fecha, 
                      #scope_hours = int(
@@ -49,8 +47,6 @@ class VentanaPorEmpleado(Ventana):
         self.ventana.set_title("Vista por empleado")
         self.grafica.add(Scene(tareas))
         tareas.sort(key = lambda t: t.fecha)
-        for t in tareas:
-            print t
         self.ventana.show_all()
 
 class VentanaPorLinea(Ventana):

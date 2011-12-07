@@ -74,4 +74,7 @@ class Tarea:
             self.fecha.strftime("%d/%m/%Y"),
             self.fecha.strftime("%H:%M"), 
             (self.fecha + self.duracion).strftime("%H:%M"))
+ 
+    def __repr__(self):
+        return self.__str__()
 
