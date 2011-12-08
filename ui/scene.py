@@ -37,9 +37,11 @@ class Scene(graphics.Scene):
                                                   key=lambda item:item[1], 
                                                   reverse=True)]
         self.empleados = empleados.keys()
+        self.empleados.sort(key = lambda e: e.nombre)
         self.bars = {}
         self.labels = {"empleados": {}, 
-                       "totales": {}}
+                       "totales": {}, 
+                       "días": {}}
         self.grid = []
         self.connect("on-enter-frame", self.on_enter_frame)
         self.connect("on-mouse-move", self.on_mouse_move)
@@ -79,6 +81,7 @@ class Scene(graphics.Scene):
         full_days = []
         offset_labels = 75  # píxeles. Pero reales, no los píxeles de la 
             # escena, que no van 1:1. Creo que es suficiente para los nombres.
+        offset_totales = 25 # píxeles por la derecha, para los totales.
         for day in range(days):
             current_date = start_date + dt.timedelta(days = day)
             #if not self.day_counts[current_date]:
@@ -86,12 +89,11 @@ class Scene(graphics.Scene):
             full_days.append(self.day_counts[current_date])
         self.clrscr()
         day_pixel = float(self.width - offset_labels) / len(full_days)
-        hour_pixel = day_pixel / 24 * 2 # Cada dos horas me interesa.
+        hour_pixel = day_pixel / 24 
         cur_x = offset_labels
         pixel_width = max(round(day_pixel), 1)
         #pixel_width = max(round(hour_pixel), 1)
         bar_alto = 15
-        bar_ancho = pixel_width 
         alto_label = 8
         for empleado in self.empleados:
             # FIXME: Esto debería ir en una función aparte. REFACTORIZAR.
@@ -101,33 +103,67 @@ class Scene(graphics.Scene):
             lnombre.x = 0
             lnombre.y = 27 + self.empleados.index(empleado) * bar_alto
             self.add_child(lnombre)
-            hline = graphics.Rectangle(self.width, 1, fill = "#000")
+            hline = graphics.Rectangle(self.width +  offset_totales, 1, 
+                                       fill = "#000")
             hline.x = 0
             hline.y = lnombre.y
             self.grid.append(hline)
             self.add_child(hline)
+            # Totales
+            total = empleado.calcular_horas_asignadas(
+                        [t for t in self.data if t.empleado == empleado])
+            ltotal = graphics.Label(str(int(total)), alto_label, "#333", 
+                                    visible = True)
+            self.labels["totales"][empleado] = ltotal
+            ltotal.x = self.width - offset_totales
+            ltotal.y = lnombre.y
+            self.add_child(ltotal)
         if self.empleados:  # Una línea más debajo del último empleado
-            hline = graphics.Rectangle(self.width, 1, fill = "#000")
+            hline = graphics.Rectangle(self.width + offset_totales, 1, 
+                                       fill = "#000")
             hline.x = 0
             hline.y = 27 + len(self.empleados) * bar_alto
             self.grid.append(hline)
             self.add_child(hline)
+        dia = start_date
         for lista_tareas_day in full_days:
             cur_x += round(day_pixel)
             #cur_x += round(hour_pixel)
             #print "lista_tareas_day", lista_tareas_day
-            vline = graphics.Rectangle(1, self.height, fill= "#000")
-            vline.x = cur_x
-            vline.y = 0
-            self.grid.append(vline)
-            self.add_child(vline)
+            # Líneas de días. 
+            if len(full_days) <= 7: # Si muestro una semana, las pongo todas.
+                self.pintar_linea_vertical(cur_x, 
+                                           label = self.build_label_fecha(dia))
+            elif 7 < len(full_days) <= 31:  # Si un mes, todas. Lunes completo.
+                if dia.weekday() == 0:
+                    self.pintar_linea_vertical(cur_x, altura = self.height, 
+                        label = self.build_label_fecha(dia))
+                else:
+                    self.pintar_linea_vertical(cur_x, altura = self.height - 27)
+            elif 31 < len(full_days) <= 93: # Tres meses. Lunes completo.
+                if dia.weekday() == 0: 
+                    self.pintar_linea_vertical(cur_x, altura = self.height, 
+                        label = self.build_label_fecha(dia))
+                elif dia.weekday() == 5:  # Y línea los viernes.
+                    self.pintar_linea_vertical(cur_x, altura = self.height - 27)
+            else:   # Más de un mes. Solo primeros de mes completos.
+                if dia.day == 1:
+                    self.pintar_linea_vertical(cur_x, altura = self.height, 
+                        label = self.build_label_fecha(dia))
+                elif dia.weekday() == 0:  # Y raya cada lunes.
+                    self.pintar_linea_vertical(cru_x, alto = self.height - 27)
             for j, tarea in enumerate(lista_tareas_day):
                 #bar per empleado
-                #g.rectangle(cur_x, 27 + self.empleados.index(fact.empleado) * 6, pixel_width, 6)
+                duracion_tarea_segundos = tarea.duracion.days * 24 * 60 * 60
+                duracion_tarea_segundos += tarea.duracion.seconds
+                duracion_tarea_horas = duracion_tarea_segundos / 60 / 60
+                bar_ancho = hour_pixel * duracion_tarea_horas
                 bar = graphics.Rectangle(bar_ancho, bar_alto, 
                         fill = color_por_area(tarea.area, self.lineas), 
                         stroke = "#aaa")
-                bar.x = cur_x
+                # cur_x está siempre en las 00:00. Avanzo hasta la hora de 
+                # inicio real. 
+                bar.x = cur_x + (tarea.fecha.hour * hour_pixel)
                 bar.y = 27 + self.empleados.index(tarea.empleado) * bar_alto 
                 bar.tarea = tarea
                 if tarea.empleado in self.empleados:
@@ -143,10 +179,32 @@ class Scene(graphics.Scene):
                 #bar per área
                 #g.rectangle(cur_x, 102 + self.lineas.index(fact.area) * 6, pixel_width, 6)
                 #number of empleados simultáneos en líneas
-                g.rectangle(cur_x, self.height - 10 * (j+1), pixel_width, 10)
+                g.rectangle(cur_x, self.height - 5 * (j+1), day_pixel, 10)
+            dia += dt.timedelta(days = 1)
         g.fill("#ad0")
         if DEBUG:
             print "-" * 80
+
+    def build_label_fecha(self, d):
+        """
+        Devuelve una cadena con el nombre y fecha del día «d».
+        """
+        return d.strftime("%d <small><sup>%b</sup></small>")
+
+    def pintar_linea_vertical(self, cur_x, altura = None, label = None):
+        if altura is None:
+            altura = self.height
+        vline = graphics.Rectangle(1, altura, fill= "#000")
+        vline.x = cur_x
+        vline.y = self.height - altura
+        self.grid.append(vline)
+        self.add_child(vline)
+        if label:   # Añado arriba del todo una etiqueta con el texto recibido.
+            ldia = graphics.Label(label, 10, "#999", visible = True)
+            self.labels["días"][label] = ldia
+            self.add_child(ldia)
+            ldia.x = cur_x + 1
+            ldia.y = 8
 
     def on_mouse_move(self, scene, event):
         active_bar = None
@@ -169,7 +227,7 @@ class Scene(graphics.Scene):
 class BasicWindow:
     def __init__(self):
         window = gtk.Window(gtk.WINDOW_TOPLEVEL)
-        window.set_size_request(600, 300)
+        window.set_size_request(800, 600)
         window.connect("delete_event", lambda *args: gtk.main_quit())
         window.add(Scene())
         window.show_all()
@@ -181,8 +239,8 @@ def color_por_area(area, areas):
     """
     indice = areas.index(area)
     #componentes = "0123456789abcdef"
-    colores = ["#000000", "#0000ff", "#00ff00", "#ff0000", "#ff00ff", 
-               "#ffffff", "#008800", "#880000", "#000088", "#888888"]
+    colores = ["#339", "#77a", "#66b", "#55c", "#44d", 
+               "#22e", "#88f", "#8ad", "#8ae", "#8af"]
     color = colores[indice % len(colores)]
     return color
 

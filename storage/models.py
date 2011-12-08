@@ -10,6 +10,28 @@ class Empleado:
     def __init__(self, nombre):
         self.nombre = nombre
 
+    def calcular_horas_asignadas(self, tareas):
+        """
+        Devuelve un entero con las horas asignadas mediante tareas.
+        """
+        res = 0
+        hpa = self.calcular_horas_por_area(tareas)
+        for a in hpa:
+            res += hpa[a]
+        return res
+
+    def calcular_horas_por_area(self, tareas):
+        """
+        Devuelve un diccionario con las horas asignadas en cada área.
+        """
+        res = {}
+        for t in tareas:
+            try:
+                res[t.area] += t.horas
+            except KeyError:
+                res[t.area] = t.horas
+        return res
+
 class Area:
     def __init__(self, nombre, descripcion = ""):
         self.nombre = nombre
@@ -77,4 +99,15 @@ class Tarea:
  
     def __repr__(self):
         return self.__str__()
+    
+    @property
+    def horas(self):
+        """
+        Devuelve un float con las horas de duración de la tarea.
+        """
+        dias = self.duracion.days
+        segundos = self.duracion.seconds
+        total_segundos = segundos + (dias * 24 * 60 * 60)
+        horas = total_segundos / 60.0 / 60.0
+        return horas
 
