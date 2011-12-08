@@ -85,3 +85,24 @@ def get_all_data_by_empleado():
             res[e] = [t]
     return res
 
+def volcar_a_mongo():
+    """
+    Inserta todos los datos de prueba en la base de datos persistente.
+    """
+    # Aunque con guardar las tareas bastaría, voy a meter también los 
+    # empleados y las áreas por separado, por si necesito hacer un recorrido 
+    # o algo sobre ellas sin estar inspeccionando tareas.
+    # 0.- Obtengo la conexión con Mongo (jejeje, ¡me encanta el nombre!)
+    from .backend import data
+    empleados = data.empleados
+    areas = data.areas
+    tareas = data.tareas
+    # 1.- Inserto empleados
+    for e in get_empleados():
+        empleados.insert(e._to_dict())
+    # 2.- Inserto áreas.
+    # I feel less zen-pythonic, sometimes my oneliner soul comes out.
+    areas.insert([a._to_dict() for a in get_areas()])
+    # 3.- Inserto tareas. 
+    tareas.insert([t._to_dict() for t in get_all_data()])
+

@@ -568,10 +568,6 @@ class Graphics(object):
                 context.paint()
             context.restore()
 
-
-
-
-
 class Sprite(gtk.Object):
     """The Sprite class is a basic display list building block: a display list
        node that can display graphics and can also contain children.
@@ -924,7 +920,6 @@ class Sprite(gtk.Object):
         context.restore()
         context.new_path() #forget about us
 
-
 class BitmapSprite(Sprite):
     """Caches given image data in a surface similar to targets, which ensures
        that drawing it will be quick and low on CPU.
@@ -985,7 +980,6 @@ class BitmapSprite(Sprite):
 
         Sprite._draw(self,  context, opacity, parent_matrix)
 
-
 class Image(BitmapSprite):
     """Displays image by path. Currently supports only PNG images."""
     def __init__(self, path, **kwargs):
@@ -998,8 +992,6 @@ class Image(BitmapSprite):
         BitmapSprite.__setattr__(self, name, val)
         if name == 'path': # load when the value is set to avoid penalty on render
             self.image_data = cairo.ImageSurface.create_from_png(self.path)
-
-
 
 class Icon(BitmapSprite):
     """Displays icon by name and size in the theme"""
@@ -1020,7 +1012,6 @@ class Icon(BitmapSprite):
                 self.image_data = self.theme.load_icon(self.name, self.size, 0)
             else:
                 self.image_data = None
-
 
 class Label(Sprite):
     __gsignals__ = {
@@ -1331,8 +1322,6 @@ class Label(Sprite):
         self.graphics.rectangle(0, 0, rect_width, self.height)
         self.graphics.clip()
 
-
-
 class Rectangle(Sprite):
     def __init__(self, w, h, corner_radius = 0, fill = None, stroke = None, line_width = 1, **kwargs):
         Sprite.__init__(self, **kwargs)
@@ -1361,7 +1350,6 @@ class Rectangle(Sprite):
         self.graphics.rectangle(0, 0, self.width, self.height, self.corner_radius)
         self.graphics.fill_stroke(self.fill, self.stroke, self.line_width)
 
-
 class Polygon(Sprite):
     def __init__(self, points, fill = None, stroke = None, line_width = 1, **kwargs):
         Sprite.__init__(self, **kwargs)
@@ -1389,7 +1377,6 @@ class Polygon(Sprite):
         self.graphics.close_path()
 
         self.graphics.fill_stroke(self.fill, self.stroke, self.line_width)
-
 
 class Circle(Sprite):
     def __init__(self, width, height, fill = None, stroke = None, line_width = 1, **kwargs):
@@ -1420,7 +1407,6 @@ class Circle(Sprite):
             self.graphics.ellipse(0, 0, self.width, self.height)
 
         self.graphics.fill_stroke(self.fill, self.stroke, self.line_width)
-
 
 class Scene(gtk.DrawingArea):
     """ Drawing area for displaying sprites.
@@ -1537,8 +1523,6 @@ class Scene(gtk.DrawingArea):
 
         self._original_width, self._original_height = None,  None
 
-
-
     def add_child(self, *sprites):
         """Add one or several :class:`Sprite` objects to the scene"""
         for sprite in sprites:
@@ -1554,7 +1538,6 @@ class Scene(gtk.DrawingArea):
     def _sort(self):
         """sort sprites by z_order"""
         self.sprites = sorted(self.sprites, key=lambda sprite:sprite.z_order)
-
 
     def remove_child(self, *sprites):
         """Remove one or several :class:`Sprite` sprites from scene """
@@ -1596,7 +1579,6 @@ class Scene(gtk.DrawingArea):
         self.redraw()
         return tween
 
-
     def redraw(self):
         """Queue redraw. The redraw will be performed not more often than
            the `framerate` allows"""
@@ -1611,7 +1593,6 @@ class Scene(gtk.DrawingArea):
 
         self.__drawing_queued = self.tweener and self.tweener.has_tweens()
         return self.__drawing_queued
-
 
     def do_expose_event(self, event):
         context = self.window.cairo_create()
@@ -1655,7 +1636,6 @@ class Scene(gtk.DrawingArea):
         self.emit("on-finish-frame", context)
         self._redraw_in_progress = False
 
-
     def do_configure_event(self, event):
         if self._original_width is None:
             self._original_width = float(event.width)
@@ -1675,7 +1655,6 @@ class Scene(gtk.DrawingArea):
 
         return all_recursive(self.sprites)
 
-
     def get_sprite_at_position(self, x, y):
         """Returns the topmost visible interactive sprite for given coordinates"""
         over = None
@@ -1687,8 +1666,6 @@ class Scene(gtk.DrawingArea):
                 over = sprite
 
         return over
-
-
 
     def __check_mouse(self, x, y):
         if x is None or self._mouse_in == False:
@@ -1793,7 +1770,6 @@ class Scene(gtk.DrawingArea):
             self.redraw()
             self._mouse_sprite = None
 
-
     def __on_button_press(self, area, event):
         target = self.get_sprite_at_position(event.x, event.y)
         self.__drag_start_x, self.__drag_start_y = event.x, event.y
@@ -1835,3 +1811,4 @@ class Scene(gtk.DrawingArea):
 
     def __on_scroll(self, area, event):
         self.emit("on-scroll", event)
+

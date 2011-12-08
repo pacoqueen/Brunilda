@@ -45,8 +45,8 @@ class VentanaPorEmpleado(Ventana):
     def __init__(self, tareas):
         Ventana.__init__(self)
         self.ventana.set_title("Vista por empleado")
+        #tareas.sort(key = lambda t: t.fecha)
         self.grafica.add(Scene(tareas))
-        tareas.sort(key = lambda t: t.fecha)
         self.ventana.show_all()
 
 class VentanaPorLinea(Ventana):
