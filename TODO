@@ -4,7 +4,7 @@
 [ ] Crear la vista de línea.
 [X] Colorear diferente las tareas de determinadas áreas
 [X] Slider de zoom y redibujar (a ver si consigues que sea fluido).
-[ ] Corregir el "glitch" de los totales de horas.
+[X] Corregir el "glitch" de los totales de horas.
 [X] Líneas horizontales para diferenciar los empleados.
 [X] Mostrar fecha cada 15 días o cada mes o algo así.
 [ ] Pensar una forma cómoda para el usuario de asignar tareas a empleados en líneas.

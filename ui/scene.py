@@ -11,9 +11,9 @@ DEBUG = False
 
 import gtk
 from lib import graphics
-
 import time, datetime as dt
 from collections import defaultdict
+
 
 class Scene(graphics.Scene):
     """
@@ -24,6 +24,7 @@ class Scene(graphics.Scene):
         self.zoom_level = zoom_level
         self.first_day = first_day
         graphics.Scene.__init__(self)
+        self.width = 500
         self.day_counts = defaultdict(list)
         lineas, empleados = defaultdict(int), defaultdict(int)
         self.data = data
@@ -45,42 +46,51 @@ class Scene(graphics.Scene):
                        "totales": {}, 
                        "días": {}}
         self.grid = []
+        if self.data:
+            self.start_date = self.data[0].ini.date()
+            self.end_date = (self.data[-1].fin + dt.timedelta(2)).date()
+            if self.first_day:  # Valores de 0 a end_date en días.
+                self.start_date += dt.timedelta(days = self.first_day)
+            if self.zoom_level: 
+                self.end_date = self.start_date + dt.timedelta(
+                                                    days = self.zoom_level)
+            # Supongamos que un día de trabajo empieza a las 6:00 y acaba a las 
+            # 6:00 del día siguiente. Contamos las horas del turno completo en 
+            # el día en el que empieza, da igual que acabe más tarde del inicio 
+            # del día laboral siguiente. 
+            self.start_datetime = dt.datetime(year = self.start_date.year, 
+                                              month = self.start_date.month, 
+                                              day = self.start_date.day) 
+            self.start_datetime += dt.timedelta(6 / 24.0)
+            self.end_datetime = dt.datetime(year = self.end_date.year, 
+                                            month = self.end_date.month, 
+                                            day = self.end_date.day) 
+            self.end_datetime += dt.timedelta(6 / 24.0)
+        else:
+            self.start_date = self.end_date = self.start_datetime \
+                = self.end_datetime = None
         self.connect("on-enter-frame", self.on_enter_frame)
         self.connect("on-mouse-move", self.on_mouse_move)
 
     def clrscr(self):
         self.clear()
-        #for tarea in self.bars:
-        #    bar = self.bars[tarea]
-        #    try:
-        #        self.remove_child(bar)
-        #    except ValueError:
-        #        pass    # Todavía no
-        #for tipolabel in self.labels:
-        #    for empleado in self.labels[tipolabel]:
-        #        try:
-        #            label = self.labels[tipolabel][empleado]
-        #        except KeyError:
-        #            continue
-        #        try:
-        #            self.remove_child(label)
-        #        except ValueError:  # Todavía no
-        #            pass
-        #for line in self.grid:
-        #    try:
-        #        self.remove_child(line)
-        #    except ValueError:
-        #        pass
         self.grid = []
 
     def create_label_total(self, empleado, alto_label, alto_bar):
-        total = empleado.calcular_horas_asignadas(
-                    [t for t in self.data if t.empleado == empleado])
+        """
+        Crea la etiqueta que mostrará las horas asignadas al empleado dentro 
+        del rango representado (que es un subconjunto del self.data).
+        """
+        tareas_empleado_rango = [t for t in self.data if
+            t.empleado == empleado 
+            and t.fecha >= self.start_datetime
+            and t.fecha <= self.end_datetime]
+        total = empleado.calcular_horas_asignadas(tareas_empleado_rango)
         txttotal = str(int(total))
         label_total = graphics.Label(txttotal, alto_label, "#333", 
                                 visible = True)
         self.labels["totales"][empleado] = label_total
-        label_total.x = self.width 
+        # Para label_total.x tengo que esperar a medir el offset_totales.
         label_total.y = 27 + self.empleados.index(empleado) * alto_bar
         self.add_child(label_total)
         ancho_label_total = label_total.measure(txttotal)[0]
@@ -133,19 +143,30 @@ class Scene(graphics.Scene):
             if fecha.day == 1:
                 self.pintar_linea_vertical(x, altura = self.height, 
                     label = self.build_label_fecha(fecha, solo_mes = True))
+        if len(full_days) <= 3: # Además de las líneas del día, pinto horas
+            for hora in range(0, 25, 2):
+                if hora in (6, 14, 22):
+                    labelhora = "<small>%02d:00</small>" % (
+                        hora < 24 and hora or 0)
+                else:
+                    labelhora = None
+                self.pintar_linea_vertical(x + hora * self.hour_pixel, 
+                                           altura = self.height - 27, 
+                                           label = labelhora, 
+                                           label_center = True)
 
-    def create_bar(self, tarea, hour_pixel, alto_bar, cur_x, j):
+    def create_bar(self, tarea, alto_bar, cur_x, j):
         # bar per empleado
         duracion_tarea_segundos = tarea.duracion.days * 24 * 60 * 60
         duracion_tarea_segundos += tarea.duracion.seconds
         duracion_tarea_horas = duracion_tarea_segundos / 60 / 60
-        bar_ancho = hour_pixel * duracion_tarea_horas
+        bar_ancho = self.hour_pixel * duracion_tarea_horas
         bar = graphics.Rectangle(bar_ancho, alto_bar, 
                 fill = color_por_area(tarea.area, self.lineas), 
                 stroke = "#aaa")
         # cur_x está siempre en las 00:00. Avanzo hasta la hora de 
         # inicio real. 
-        bar.x = cur_x + (tarea.fecha.hour * hour_pixel)
+        bar.x = cur_x + (tarea.fecha.hour * self.hour_pixel)
         bar.y = 27 + self.empleados.index(tarea.empleado) * alto_bar 
         bar.tarea = tarea
         if tarea.empleado in self.empleados:
@@ -158,7 +179,7 @@ class Scene(graphics.Scene):
         self.add_child(bar)
         self.bars[tarea] = bar
 
-    def create_portion_carga_linea(self, cur_x, numtarea_del_dia, day_pixel):
+    def create_portion_carga_linea(self, cur_x, numtarea_del_dia, pixel_width):
         """
         Dibuja un rectángulo que representa la porción de barra vertical del 
         número de empleados trabajando en una línea (área) simultáneamente el 
@@ -167,10 +188,10 @@ class Scene(graphics.Scene):
         tarea de cada empleado, al apilarse forman la barra vertical total.
         """
         # number of empleados simultáneos en líneas
-        #g.rectangle(cur_x, self.height - 5 * (numtarea_del_dia+1), day_pixel, 
+        #g.rectangle(cur_x, self.height - 5 * (numtarea_del_dia+1), pixel_width, 
         #            10)
         alto = 10
-        portion = graphics.Rectangle(day_pixel, alto, fill = "#ad0")
+        portion = graphics.Rectangle(pixel_width, alto, fill = "#ad0")
         portion.x = cur_x
         portion.y = self.height - 5 * (numtarea_del_dia + 1)
         self.add_child(portion)
@@ -180,13 +201,7 @@ class Scene(graphics.Scene):
             return
         g = graphics.Graphics(context)
         g.set_line_style(width=1)
-        start_date = self.data[0].ini.date()
-        if self.first_day:  # Valores de 0 a end_date en días.
-            start_date += dt.timedelta(days = self.first_day)
-        end_date = (self.data[-1].fin + dt.timedelta(2)).date()
-        if self.zoom_level: 
-            end_date = start_date + dt.timedelta(days = self.zoom_level + 1)
-        days = (end_date - start_date).days
+        days = (self.end_date - self.start_date).days
         full_days = []
         self.clrscr()
         alto_bar = 15
@@ -199,7 +214,7 @@ class Scene(graphics.Scene):
             ancho_label_total = self.create_label_total(empleado, alto_label, 
                                                         alto_bar)
             anchos_totales.append(ancho_label_total)
-        offset_totales = max(anchos_totales) # Por la derecha para los totales.
+        offset_totales = max(anchos_totales) + 5    # Por la derecha.
         for empleado in self.empleados:
             ancho_label_nombre = self.create_label_empleado(empleado, 
                                                             alto_label, 
@@ -215,29 +230,43 @@ class Scene(graphics.Scene):
             self.add_child(hline)
         offset_labels = max(anchos_empleados) + 5 # píxeles. Pero reales, no 
             # los píxeles de la escena (day_pixel & co.), que no van 1:1. 
+        lanno = graphics.Label(`self.start_date.year`, 16, "#999", visible = True)
+        lanno.y = 0
+        lanno.x = offset_labels - lanno.measure(`self.start_date.year`)[0]
+        self.add_child(lanno)
+        # Cuento el número de barras que tendré que dibujar cada día:
         for day in range(days):
-            current_date = start_date + dt.timedelta(days = day)
+            current_date = self.start_date + dt.timedelta(days = day)
             #if not self.day_counts[current_date]:
             #    continue   # "Comprime" la gráfica ignorando días vacíos.
             full_days.append(self.day_counts[current_date])
-        day_pixel = float(self.width - offset_labels) / len(full_days)
-        hour_pixel = day_pixel / 24 
+        # Y ahora calculo las dimensiones en función de los días a representar.
+        # El +1 es porque al haber tantos datos representados, la división 
+        # sale a veces (las más) un poco al alza, provocando que las barras 
+        # vayan más allá del borde del canvas. 
+        self.day_pixel = (float(self.width 
+                           - offset_labels 
+                           - offset_totales) / (len(full_days) + 1))
+        self.hour_pixel = self.day_pixel / 24 
         cur_x = offset_labels
-        pixel_width = max(round(day_pixel), 1)
-        #pixel_width = max(round(hour_pixel), 1)
-        dia = start_date
+        pixel_width = max(round(self.day_pixel), 1)
+        dia = self.start_date
         for lista_tareas_day in full_days:
-            cur_x += round(day_pixel)
-            #cur_x += round(hour_pixel)
+            #cur_x += round(self.hour_pixel)
             #print "lista_tareas_day", lista_tareas_day
             for numtarea_del_dia, tarea in enumerate(lista_tareas_day):
-                self.create_bar(tarea, hour_pixel, alto_bar, cur_x, 
+                self.create_bar(tarea, alto_bar, cur_x, 
                                 numtarea_del_dia)
                 self.create_portion_carga_linea(cur_x, numtarea_del_dia, 
-                                                day_pixel)
+                                                pixel_width)
             self.create_vlines(full_days, cur_x, dia)
             dia += dt.timedelta(days = 1)
-        #g.fill("#ad0")
+            cur_x += round(pixel_width)
+        # Una vez que está todo "pintado", es hora de ajustar bien el ancho y 
+        # calcular la x donde se renderizarán los totales:
+        for empleado in self.labels['totales']:
+            ltotal = self.labels['totales'][empleado]
+            ltotal.x = self.width - offset_totales
         if DEBUG:
             print "-" * 80
 
@@ -251,7 +280,8 @@ class Scene(graphics.Scene):
             label = d.strftime("%b")
         return label
 
-    def pintar_linea_vertical(self, cur_x, altura = None, label = None):
+    def pintar_linea_vertical(self, cur_x, altura = None, label = None, 
+                              label_center = False):
         if altura is None:
             altura = self.height
         vline = graphics.Rectangle(1, altura, fill= "#000")
@@ -263,8 +293,12 @@ class Scene(graphics.Scene):
             ldia = graphics.Label(label, 10, "#999", visible = True)
             self.labels["días"][label] = ldia
             self.add_child(ldia)
-            ldia.x = cur_x + 1
-            ldia.y = 8
+            if not label_center:
+                ldia.x = cur_x + 2
+                ldia.y = 3
+            else:
+                ldia.x = cur_x - (ldia.measure(label)[0] / 2)
+                ldia.y = 13
 
     def on_mouse_move(self, scene, event):
         active_bar = None
@@ -284,28 +318,14 @@ class Scene(graphics.Scene):
         self.redraw()
 
 
-class BasicWindow:
-    def __init__(self):
-        window = gtk.Window(gtk.WINDOW_TOPLEVEL)
-        window.set_size_request(800, 600)
-        window.connect("delete_event", lambda *args: gtk.main_quit())
-        window.add(Scene())
-        window.show_all()
-
-
 def color_por_area(area, areas):
     """
     Devuelve un color único por cada línea.
     """
     indice = areas.index(area)
-    #componentes = "0123456789abcdef"
     colores = ["#339", "#77a", "#66b", "#55c", "#44d", 
                "#22e", "#88f", "#8ad", "#8ae", "#8af"]
     color = colores[indice % len(colores)]
     return color
 
-
-if __name__ == "__main__":
-    example = BasicWindow()
-    gtk.main()
 

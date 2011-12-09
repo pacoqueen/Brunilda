@@ -4,8 +4,7 @@
 import pygtk, gtk
 from storage import sample
 from storage import backend
-from ui.gui import VentanaPorEmpleado
-from lib import graphics
+from ui.gui import Ventana
 
 def main():
     """
@@ -13,7 +12,7 @@ def main():
     """
     # tareas = sample.get_all_data()
     tareas = backend.get_all_data()
-    ventana = VentanaPorEmpleado(tareas)
+    ventana = Ventana(tareas)
     gtk.main()
 
 if __name__ == "__main__":
