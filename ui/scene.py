@@ -20,7 +20,8 @@ class Scene(graphics.Scene):
     «data» son tareas con un empleado, un área, una hora de inicio y una 
     duración.
     """
-    def __init__(self, data = []):
+    def __init__(self, data = [], zoom_level = None):
+        self.zoom_level = zoom_level
         graphics.Scene.__init__(self)
         self.day_counts = defaultdict(list)
         lineas, empleados = defaultdict(int), defaultdict(int)
@@ -77,6 +78,8 @@ class Scene(graphics.Scene):
         g.set_line_style(width=1)
         start_date = self.data[0].ini.date()
         end_date = (self.data[-1].fin + dt.timedelta(2)).date()
+        if self.zoom_level: # TODO: Faltaría ver en qué fecha centro la ventana. De momento uso la primera que exista.
+            end_date = start_date + dt.timedelta(days = self.zoom_level)
         days = (end_date - start_date).days
         full_days = []
         offset_labels = 75  # píxeles. Pero reales, no los píxeles de la 
@@ -151,7 +154,7 @@ class Scene(graphics.Scene):
                     self.pintar_linea_vertical(cur_x, altura = self.height, 
                         label = self.build_label_fecha(dia))
                 elif dia.weekday() == 0:  # Y raya cada lunes.
-                    self.pintar_linea_vertical(cru_x, alto = self.height - 27)
+                    self.pintar_linea_vertical(cur_x, altura = self.height - 27)
             for j, tarea in enumerate(lista_tareas_day):
                 #bar per empleado
                 duracion_tarea_segundos = tarea.duracion.days * 24 * 60 * 60
