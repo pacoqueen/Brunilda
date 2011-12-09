@@ -49,28 +49,42 @@ class Scene(graphics.Scene):
         self.connect("on-mouse-move", self.on_mouse_move)
 
     def clrscr(self):
-        for tarea in self.bars:
-            bar = self.bars[tarea]
-            try:
-                self.remove_child(bar)
-            except ValueError:
-                pass    # Todavía no
-        for tipolabel in self.labels:
-            for empleado in self.labels[tipolabel]:
-                try:
-                    label = self.labels[tipolabel][empleado]
-                except KeyError:
-                    continue
-                try:
-                    self.remove_child(label)
-                except ValueError:  # Todavía no
-                    pass
-        for line in self.grid:
-            try:
-                self.remove_child(line)
-            except ValueError:
-                pass
+        self.clear()
+        #for tarea in self.bars:
+        #    bar = self.bars[tarea]
+        #    try:
+        #        self.remove_child(bar)
+        #    except ValueError:
+        #        pass    # Todavía no
+        #for tipolabel in self.labels:
+        #    for empleado in self.labels[tipolabel]:
+        #        try:
+        #            label = self.labels[tipolabel][empleado]
+        #        except KeyError:
+        #            continue
+        #        try:
+        #            self.remove_child(label)
+        #        except ValueError:  # Todavía no
+        #            pass
+        #for line in self.grid:
+        #    try:
+        #        self.remove_child(line)
+        #    except ValueError:
+        #        pass
         self.grid = []
+
+    def create_label_total(self, empleado, alto_label, alto_bar):
+        total = empleado.calcular_horas_asignadas(
+                    [t for t in self.data if t.empleado == empleado])
+        txttotal = str(int(total))
+        label_total = graphics.Label(txttotal, alto_label, "#333", 
+                                visible = True)
+        self.labels["totales"][empleado] = label_total
+        label_total.x = self.width 
+        label_total.y = 27 + self.empleados.index(empleado) * alto_bar
+        self.add_child(label_total)
+        ancho_label_total = label_total.measure(txttotal)[0]
+        return ancho_label_total
 
     def on_enter_frame(self, scene, context):
         if not self.data:
@@ -85,29 +99,24 @@ class Scene(graphics.Scene):
             end_date = start_date + dt.timedelta(days = self.zoom_level + 1)
         days = (end_date - start_date).days
         full_days = []
-        offset_labels = 75  # píxeles. Pero reales, no los píxeles de la 
-            # escena, que no van 1:1. Creo que es suficiente para los nombres.
-        offset_totales = 25 # píxeles por la derecha, para los totales.
-        for day in range(days):
-            current_date = start_date + dt.timedelta(days = day)
-            #if not self.day_counts[current_date]:
-            #    continue   # "Comprime" la gráfica ignorando días vacíos.
-            full_days.append(self.day_counts[current_date])
         self.clrscr()
-        day_pixel = float(self.width - offset_labels) / len(full_days)
-        hour_pixel = day_pixel / 24 
-        cur_x = offset_labels
-        pixel_width = max(round(day_pixel), 1)
-        #pixel_width = max(round(hour_pixel), 1)
-        bar_alto = 15
+        alto_bar = 15
         alto_label = 8
+        anchos_empleados = []
+        anchos_totales = []
+        for empleado in self.empleados:
+            # Totales. Necesito duplicar el bucle porque el ancho de los 
+            # totales me hará falta después para las líneas horizontales.
+            ancho_label_total = self.create_label_total(empleado, alto_label, alto_bar)
+            anchos_totales.append(ancho_label_total)
+        offset_totales = max(anchos_totales) # Por la derecha para los totales.
         for empleado in self.empleados:
             # FIXME: Esto debería ir en una función aparte. REFACTORIZAR.
             nombre = empleado.nombre
             lnombre = graphics.Label(nombre, alto_label, "#333", visible = True)
             self.labels["empleados"][empleado] = lnombre
             lnombre.x = 0
-            lnombre.y = 27 + self.empleados.index(empleado) * bar_alto
+            lnombre.y = 27 + self.empleados.index(empleado) * alto_bar
             self.add_child(lnombre)
             hline = graphics.Rectangle(self.width +  offset_totales, 1, 
                                        fill = "#000")
@@ -115,22 +124,26 @@ class Scene(graphics.Scene):
             hline.y = lnombre.y
             self.grid.append(hline)
             self.add_child(hline)
-            # Totales
-            total = empleado.calcular_horas_asignadas(
-                        [t for t in self.data if t.empleado == empleado])
-            ltotal = graphics.Label(str(int(total)), alto_label, "#333", 
-                                    visible = True)
-            self.labels["totales"][empleado] = ltotal
-            ltotal.x = self.width - offset_totales
-            ltotal.y = lnombre.y
-            self.add_child(ltotal)
+            anchos_empleados.append(lnombre.measure(nombre)[0])
         if self.empleados:  # Una línea más debajo del último empleado
             hline = graphics.Rectangle(self.width + offset_totales, 1, 
                                        fill = "#000")
             hline.x = 0
-            hline.y = 27 + len(self.empleados) * bar_alto
+            hline.y = 27 + len(self.empleados) * alto_bar
             self.grid.append(hline)
             self.add_child(hline)
+        offset_labels = max(anchos_empleados) + 5 # píxeles. Pero reales, no 
+            # los píxeles de la escena (day_pixel & co.), que no van 1:1. 
+        for day in range(days):
+            current_date = start_date + dt.timedelta(days = day)
+            #if not self.day_counts[current_date]:
+            #    continue   # "Comprime" la gráfica ignorando días vacíos.
+            full_days.append(self.day_counts[current_date])
+        day_pixel = float(self.width - offset_labels) / len(full_days)
+        hour_pixel = day_pixel / 24 
+        cur_x = offset_labels
+        pixel_width = max(round(day_pixel), 1)
+        #pixel_width = max(round(hour_pixel), 1)
         dia = start_date
         for lista_tareas_day in full_days:
             cur_x += round(day_pixel)
@@ -168,13 +181,13 @@ class Scene(graphics.Scene):
                 duracion_tarea_segundos += tarea.duracion.seconds
                 duracion_tarea_horas = duracion_tarea_segundos / 60 / 60
                 bar_ancho = hour_pixel * duracion_tarea_horas
-                bar = graphics.Rectangle(bar_ancho, bar_alto, 
+                bar = graphics.Rectangle(bar_ancho, alto_bar, 
                         fill = color_por_area(tarea.area, self.lineas), 
                         stroke = "#aaa")
                 # cur_x está siempre en las 00:00. Avanzo hasta la hora de 
                 # inicio real. 
                 bar.x = cur_x + (tarea.fecha.hour * hour_pixel)
-                bar.y = 27 + self.empleados.index(tarea.empleado) * bar_alto 
+                bar.y = 27 + self.empleados.index(tarea.empleado) * alto_bar 
                 bar.tarea = tarea
                 if tarea.empleado in self.empleados:
                     bar.empleado = self.empleados.index(tarea.empleado)

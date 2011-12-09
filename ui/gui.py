@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import pygtk, gtk
+import pygtk, gtk, pango
 from .scene import Scene
 import datetime
 
@@ -17,6 +17,7 @@ class Ventana:
         self.ventana.connect("destroy", lambda *a, **kw: gtk.main_quit())
         self.container = gtk.VBox()
         self.grafica = gtk.EventBox()
+        self.grafica.set_property("border-width", 5)
         self.container.pack_start(self.grafica)
         self.controls = gtk.VBox()
         self.lower_controls = gtk.HBox()
@@ -28,6 +29,8 @@ class Ventana:
         self.zoom_level = 62
         self.slider = gtk.HScale(self.zoom)
         self.slider.set_digits(0)
+        self.slider.get_layout().set_font_description(
+            pango.FontDescription("monospace 8"))
         for i in range(31, 365, 31):
             self.slider.add_mark(i, gtk.POS_TOP, None)
         self.lower_controls.add(self.slider)
