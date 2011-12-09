@@ -79,7 +79,7 @@ class Scene(graphics.Scene):
         start_date = self.data[0].ini.date()
         end_date = (self.data[-1].fin + dt.timedelta(2)).date()
         if self.zoom_level: # TODO: Faltaría ver en qué fecha centro la ventana. De momento uso la primera que exista.
-            end_date = start_date + dt.timedelta(days = self.zoom_level)
+            end_date = start_date + dt.timedelta(days = self.zoom_level + 1)
         days = (end_date - start_date).days
         full_days = []
         offset_labels = 75  # píxeles. Pero reales, no los píxeles de la 
@@ -143,18 +143,22 @@ class Scene(graphics.Scene):
                         label = self.build_label_fecha(dia))
                 else:
                     self.pintar_linea_vertical(cur_x, altura = self.height - 27)
-            elif 31 < len(full_days) <= 93: # Tres meses. Lunes completo.
+            elif 31 < len(full_days) < 31 * 4: # Tres meses. Lunes completo.
                 if dia.weekday() == 0: 
                     self.pintar_linea_vertical(cur_x, altura = self.height, 
                         label = self.build_label_fecha(dia))
                 elif dia.weekday() == 5:  # Y línea los viernes.
                     self.pintar_linea_vertical(cur_x, altura = self.height - 27)
-            else:   # Más de un mes. Solo primeros de mes completos.
-                if dia.day == 1:
+            elif 93 < len(full_days) < 31 * 7: # Más de un trimestre. 
+                if dia.day == 1:    # Solo primeros de mes completos.
                     self.pintar_linea_vertical(cur_x, altura = self.height, 
                         label = self.build_label_fecha(dia))
-                elif dia.weekday() == 0:  # Y raya cada lunes.
+                elif dia.day == 15: # Y raya cada quince días.
                     self.pintar_linea_vertical(cur_x, altura = self.height - 27)
+            else:   # Más de seis meses, solo meses:
+                if dia.day == 1:
+                    self.pintar_linea_vertical(cur_x, altura = self.height, 
+                        label = self.build_label_fecha(dia, solo_mes = True))
             for j, tarea in enumerate(lista_tareas_day):
                 #bar per empleado
                 duracion_tarea_segundos = tarea.duracion.days * 24 * 60 * 60
@@ -188,11 +192,15 @@ class Scene(graphics.Scene):
         if DEBUG:
             print "-" * 80
 
-    def build_label_fecha(self, d):
+    def build_label_fecha(self, d, solo_mes = False):
         """
         Devuelve una cadena con el nombre y fecha del día «d».
         """
-        return d.strftime("%d <small><sup>%b</sup></small>")
+        if not solo_mes:
+            label = d.strftime("%d <small><sup>%b</sup></small>")
+        else:
+            label = d.strftime("%b")
+        return label
 
     def pintar_linea_vertical(self, cur_x, altura = None, label = None):
         if altura is None:
