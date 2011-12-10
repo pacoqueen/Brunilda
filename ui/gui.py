@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import pygtk, gtk, pango
-from .scene import Scene
+from .scene import Scene, ScenePorArea
 import datetime
 
 class Ventana:
@@ -52,6 +52,7 @@ class Ventana:
         self.container.pack_start(self.controls, expand = False)
         self.ventana.add(self.container)
         self.ventana.set_title("Vista por empleado")
+        self.vista_por_empleado = True
         #tareas.sort(key = lambda t: t.fecha)
         self.tareas = tareas
         self.load_escena()
@@ -59,13 +60,18 @@ class Ventana:
         self.ventana.show_all()
 
     def _cambiar_vista(self, boton):
-        if boton.get_active():
+        self.vista_por_empleado = not boton.get_active()
+        if self.vista_por_empleado:
             lvista = "Ver por empleado"
             self.ventana.set_title("Vista por empleado")
         else:
             lvista = "Ver por línea"
             self.ventana.set_title("Vista por línea")
         boton.set_label(lvista)
+        self.grafica.remove(self.escena)
+        self.load_escena()
+        self.grafica.add(self.escena)
+        self.grafica.show_all()
 
     def _update_zoom(self, range):
         self.zoom_level = range.get_value()
@@ -89,5 +95,9 @@ class Ventana:
 
     def load_escena(self):
         # Premature optimization is the root of all evil. Pero más adelante tal vez debería estringir las tareas únicamente al zoom_level, para no tener que cargar todas en memoria si no las voy a mostrar.
-        self.escena = Scene(self.tareas, self.zoom_level, self.first_day)
+        if self.vista_por_empleado:
+            self.escena = Scene(self.tareas, self.zoom_level, self.first_day)
+        else:
+            self.escena = ScenePorArea(self.tareas, self.zoom_level, 
+                                       self.first_day)
 

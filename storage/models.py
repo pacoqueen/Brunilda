@@ -57,7 +57,8 @@ class Empleado(object):
         return res
 
 
-class Area:
+class Area(object):
+    _instances = {}
     def __new__(cls, nombre, *args, **kw):
         """
         Redefino el constructor para no crear múltiples instancias de la 
@@ -85,6 +86,27 @@ class Area:
                'descripcion': self.descripcion}
         return res
 
+    def calcular_horas_por_empleado(self, tareas):
+        """
+        Devuelve un diccionario con las horas asignadas a cada emppleado
+        """
+        res = {}
+        for t in tareas:
+            try:
+                res[t.empleado] += t.horas
+            except KeyError:
+                res[t.empleado] = t.horas
+        return res
+
+    def calcular_horas_asignadas(self, tareas):
+        """
+        Devuelve un entero con las horas asignadas mediante tareas.
+        """
+        res = 0
+        hpa = self.calcular_horas_por_empleado(tareas)
+        for a in hpa:
+            res += hpa[a]
+        return res
 
 class Tarea:
     """

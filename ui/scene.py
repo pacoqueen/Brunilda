@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # - coding: utf-8 -
 # Copyright (C) 2010 Toms Bauģis <toms.baugis at gmail.com>
-# Modified by (C) 2011 Francisco José Rodríguez Bogado <bogado@qinn.es>
+# (Deeply) modified by (C)2011 Francisco José Rodríguez Bogado <bogado@qinn.es>
 
 """
 Gráfico de segmentos horizontales.
@@ -36,6 +36,7 @@ class Scene(graphics.Scene):
             # Si continúa en el día siguiente, se dibuja en dos trozos.
             #if tarea.fin and tarea.ini.date() != tarea.fin.date():
             #    self.day_counts[tarea.fin.date()].append(tarea)
+        # XXX self._lineas = lineas   # Esto es para las clases derivadas.
         self.lineas = [area[0] for area in sorted(lineas.items(), 
                                                   key=lambda item:item[1], 
                                                   reverse=True)]
@@ -54,10 +55,10 @@ class Scene(graphics.Scene):
             if self.zoom_level: 
                 self.end_date = self.start_date + dt.timedelta(
                                                     days = self.zoom_level)
-            # Supongamos que un día de trabajo empieza a las 6:00 y acaba a las 
-            # 6:00 del día siguiente. Contamos las horas del turno completo en 
-            # el día en el que empieza, da igual que acabe más tarde del inicio 
-            # del día laboral siguiente. 
+            # Supongamos que un día de trabajo empieza a las 6:00 y acaba a 
+            # las 6:00 del día siguiente. Contamos las horas del turno 
+            # completo en el día en el que empieza, da igual que acabe más 
+            # tarde del inicio del día laboral siguiente. 
             self.start_datetime = dt.datetime(year = self.start_date.year, 
                                               month = self.start_date.month, 
                                               day = self.start_date.day) 
@@ -84,7 +85,7 @@ class Scene(graphics.Scene):
         tareas_empleado_rango = [t for t in self.data if
             t.empleado == empleado 
             and t.fecha >= self.start_datetime
-            and t.fecha <= self.end_datetime]
+            and t.fecha < self.end_datetime]
         total = empleado.calcular_horas_asignadas(tareas_empleado_rango)
         txttotal = str(int(total))
         label_total = graphics.Label(txttotal, alto_label, "#333", 
@@ -188,8 +189,6 @@ class Scene(graphics.Scene):
         tarea de cada empleado, al apilarse forman la barra vertical total.
         """
         # number of empleados simultáneos en líneas
-        #g.rectangle(cur_x, self.height - 5 * (numtarea_del_dia+1), pixel_width, 
-        #            10)
         alto = 10
         portion = graphics.Rectangle(pixel_width, alto, fill = "#ad0")
         portion.x = cur_x
@@ -230,7 +229,9 @@ class Scene(graphics.Scene):
             self.add_child(hline)
         offset_labels = max(anchos_empleados) + 5 # píxeles. Pero reales, no 
             # los píxeles de la escena (day_pixel & co.), que no van 1:1. 
-        lanno = graphics.Label(`self.start_date.year`, 16, "#999", visible = True)
+        lanno = graphics.Label(`self.start_date.year`, 16, "#999")
+        offset_labels = max(offset_labels, 
+                            lanno.measure(`self.start_date.year`)[0])
         lanno.y = 0
         lanno.x = offset_labels - lanno.measure(`self.start_date.year`)[0]
         self.add_child(lanno)
@@ -322,10 +323,229 @@ def color_por_area(area, areas):
     """
     Devuelve un color único por cada línea.
     """
+    # TODO: Único, lo que se dice único... como haya más áreas que 
+    # colores harcoded, lo llevas claro.
     indice = areas.index(area)
     colores = ["#339", "#77a", "#66b", "#55c", "#44d", 
                "#22e", "#88f", "#8ad", "#8ae", "#8af"]
     color = colores[indice % len(colores)]
     return color
 
+
+def color_tarea(tarea, z):
+    """
+    Devuelve siempre el mismo color para la misma duración de la tarea, 
+    pero con "alpha"[*]. Así, el color se oscurece gradualmente cuantos 
+    más operarios hay trabajando en la misma línea a la misma hora. 
+    Además, permite también diferenciar a simple vista si algunos de ellos 
+    tienen un turno más largo que los demás.
+    [*] Como parece que no sé manejar el alpha en Cairo, hago un remedo: 
+        cuanto más alta es la z, más alta en la lista de capas está la tarea y 
+        más oscuro hago el color (porque se supone que se superpone al color 
+        de la tarea inferior).
+    """
+    # z me va a servir para ver la "profundidad" de la tarea. La más baja es 
+    # z = 1, la siguiente z = 2 y así sucesivamente.
+    zcolor = hex(0xf - ((z-1) * 2)).split("x")[1]
+    if tarea.horas <= 8:
+        color = "#%s700" % zcolor
+    else:
+        color = "#%s000" % zcolor
+    return color
+
+class ScenePorArea(Scene):
+    """
+    «data» son tareas con un empleado, un área, una hora de inicio y una 
+    duración.
+    """
+    def __init__(self, *args, **kw):
+        Scene.__init__(self, *args, **kw)
+        self.labels = {"lineas": {}, 
+                       "totales": {}, 
+                       "días": {}}
+        # XXX self.lineas = sorted(self._lineas.keys())
+
+    def create_label_total(self, area, alto_label, alto_bar):
+        """
+        Crea la etiqueta que mostrará las horas asignadas al la línea dentro 
+        del rango representado (que es un subconjunto del self.data).
+        """
+        tareas_area_rango = [t for t in self.data if
+            t.area == area 
+            and t.fecha >= self.start_datetime
+            and t.fecha < self.end_datetime]
+        total = area.calcular_horas_asignadas(tareas_area_rango)
+        txttotal = str(int(total))
+        label_total = graphics.Label(txttotal, alto_label, "#333", 
+                                visible = True)
+        self.labels["totales"][area] = label_total
+        # Para label_total.x tengo que esperar a medir el offset_totales.
+        label_total.y = 27 + self.lineas.index(area) * alto_bar
+        self.add_child(label_total)
+        ancho_label_total = label_total.measure(txttotal)[0]
+        return ancho_label_total
+
+    def create_label_area(self, area, alto_label, alto_bar, 
+                              offset_totales):
+        """
+        Crea y coloca tanto el label del area como la línea horizontal.
+        """
+        nombre = area.nombre
+        lnombre = graphics.Label(nombre, alto_label, "#333", visible = True)
+        self.labels["lineas"][area] = lnombre
+        lnombre.x = 0
+        lnombre.y = 27 + self.lineas.index(area) * alto_bar
+        self.add_child(lnombre)
+        hline = graphics.Rectangle(self.width +  offset_totales, 1, 
+                                   fill = "#000")
+        hline.x = 0
+        hline.y = lnombre.y
+        self.grid.append(hline)
+        self.add_child(hline)
+        ancho_label_nombre = lnombre.measure(nombre)[0]
+        return ancho_label_nombre
+
+    def create_bar(self, tarea, alto_bar, cur_x, j):
+        # bar per area
+        duracion_tarea_segundos = tarea.duracion.days * 24 * 60 * 60
+        duracion_tarea_segundos += tarea.duracion.seconds
+        duracion_tarea_horas = duracion_tarea_segundos / 60 / 60
+        bar_ancho = self.hour_pixel * duracion_tarea_horas
+        bar = graphics.Rectangle(bar_ancho, alto_bar, 
+                fill = color_tarea(tarea, j), 
+                stroke = "#FFEFEF00", #FIXME:El alpha pasa completamente de mí
+                line_width = max(0, 4 - int(self.zoom_level / 31)), 
+                corner_radius = 10)
+        # cur_x está siempre en las 00:00. Avanzo hasta la hora de 
+        # inicio real. 
+        bar.x = cur_x + (tarea.fecha.hour * self.hour_pixel)
+        bar.y = 27 + self.lineas.index(tarea.area) * alto_bar 
+        bar.tarea = tarea
+        if tarea.area in self.lineas:
+            bar.area = self.lineas.index(tarea.area)
+        else:
+            bar.area = len(self.lineas)
+        if DEBUG:
+            print j, tarea, "(%d, %d) - (%d, %d)" % (
+                bar.x, bar.y, bar.x + bar.width, bar.y + bar.height)
+        self.add_child(bar)
+        self.bars[tarea] = bar
+
+    def on_enter_frame(self, scene, context):
+        if not self.data:
+            return
+        g = graphics.Graphics(context)
+        g.set_line_style(width=1)
+        days = (self.end_date - self.start_date).days
+        full_days = []
+        self.clrscr()
+        alto_bar = 15
+        alto_label = 8
+        anchos_areas = []
+        anchos_totales = []
+        for area in self.lineas:
+            # Totales. Necesito duplicar el bucle porque el ancho de los 
+            # totales me hará falta después para las líneas horizontales.
+            ancho_label_total = self.create_label_total(area, alto_label, 
+                                                        alto_bar)
+            anchos_totales.append(ancho_label_total)
+        offset_totales = max(anchos_totales) + 5    # Por la derecha.
+        for area in self.lineas:
+            ancho_label_nombre = self.create_label_area(area, 
+                                                            alto_label, 
+                                                            alto_bar, 
+                                                            offset_totales)
+            anchos_areas.append(ancho_label_nombre)
+        if self.lineas:  # Una línea más debajo del último area
+            hline = graphics.Rectangle(self.width + offset_totales, 1, 
+                                       fill = "#000")
+            hline.x = 0
+            hline.y = 27 + len(self.lineas) * alto_bar
+            self.grid.append(hline)
+            self.add_child(hline)
+        offset_labels = max(anchos_areas) + 5 # píxeles. Pero reales, no 
+            # los píxeles de la escena (day_pixel & co.), que no van 1:1. 
+        lanno = graphics.Label(`self.start_date.year`, 16, "#999")
+        offset_labels = max(offset_labels, 
+                            lanno.measure(`self.start_date.year`)[0])
+        lanno.y = 0
+        lanno.x = offset_labels - lanno.measure(`self.start_date.year`)[0]
+        self.add_child(lanno)
+        # Cuento el número de barras que tendré que dibujar cada día:
+        for day in range(days):
+            current_date = self.start_date + dt.timedelta(days = day)
+            #if not self.day_counts[current_date]:
+            #    continue   # "Comprime" la gráfica ignorando días vacíos.
+            full_days.append(self.day_counts[current_date])
+        # Y ahora calculo las dimensiones en función de los días a representar.
+        # El +1 es porque al haber tantos datos representados, la división 
+        # sale a veces (las más) un poco al alza, provocando que las barras 
+        # vayan más allá del borde del canvas. 
+        self.day_pixel = (float(self.width 
+                           - offset_labels 
+                           - offset_totales) / (len(full_days) + 1))
+        self.hour_pixel = self.day_pixel / 24 
+        cur_x = offset_labels
+        pixel_width = max(round(self.day_pixel), 1)
+        dia = self.start_date
+        for lista_tareas_day in full_days:
+            #cur_x += round(self.hour_pixel)
+            #print "lista_tareas_day", lista_tareas_day
+            self.create_vlines(full_days, cur_x, dia)
+            # "Pinto" de la más larga a la más corta para distinguir cómo se 
+            # superponen.
+            zbuffer = calculate_zbuffer(lista_tareas_day)
+            for numtarea_del_dia, tarea in enumerate(lista_tareas_day):
+                self.create_bar(tarea, alto_bar, cur_x, zbuffer[tarea]) 
+                self.create_portion_carga_linea(cur_x, numtarea_del_dia, 
+                                                pixel_width)
+            dia += dt.timedelta(days = 1)
+            cur_x += round(pixel_width)
+        # Una vez que está todo "pintado", es hora de ajustar bien el ancho y 
+        # calcular la x donde se renderizarán los totales:
+        for area in self.labels['totales']:
+            ltotal = self.labels['totales'][area]
+            ltotal.x = self.width - offset_totales
+        if DEBUG:
+            print "-" * 80
+
+    def on_mouse_move(self, scene, event):
+        actives_bars = []
+        # find if we are maybe on a bar(s)
+        current_x, current_y = event.get_coords()
+        for tarea in self.bars:
+            bar = self.bars[tarea]
+            if ((bar.x < current_x < bar.x + bar.width) 
+                and (bar.y < current_y < bar.y + bar.height)):
+                actives_bars.append(bar)
+        if actives_bars:
+            self.set_tooltip_text("\n".join(
+                [str(a.tarea) for a in actives_bars]))
+        else:
+            self.set_tooltip_text("")
+            #self.set_tooltip_text(str(event.get_coords()))
+        self.redraw()
+
+def calculate_zbuffer(ts):
+    """
+    En realidad devuelve el número de tareas que coinciden a la misma hora 
+    en el mismo área.
+    Las que se pisen de diferente duración no hay manera de que se coloreen 
+    sin implementar un canal alfa real, porque no en todos los casos 
+    una tarea más corta queda completamente superpuesta a una más larga. En 
+    determinados casos la más corta termina después de la más larga, y ahí 
+    una parte de la tarea corta sería de un color y otra de otra.
+    """
+    z = dict(zip(ts, (1, ) * len(ts)))
+    # Dentro de cada área, organizo las tareas por hora de inicio.
+    por_area = {}
+    for t in ts:
+        area = t.area
+        ini = t.ini
+        if area not in por_area:
+            por_area[area] = defaultdict(lambda: 0)
+        por_area[area][ini] += 1
+    for t in ts:
+        z[t] = por_area[t.area][t.ini]
+    return z
 
