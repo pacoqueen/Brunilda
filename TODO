@@ -10,3 +10,7 @@
 [ ] Pensar una forma cómoda para el usuario de asignar tareas a empleados en líneas.
 [X] Cabmar el sample en el módulo storage por un backend de verdad rápido y portable. Tipo MongoDB. En realidad los diccionarios parecen ideales para almacenarse en bases de datos NoSQL.
 [ ] Opción de imprimir e imprimir calendario laboral de cada empleado.
+[ ] Optimizar. La interfaz es lentísima.
+[ ] ¿Drag'n drop? ¿Selección múltiple de tareas y permitir arrastrarlas?
+[ ] CRUD para empleados y líneas o importar de ginn.
+[ ] Cursor ocupado mientras redibujo gráfica.

@@ -114,12 +114,14 @@ class Tarea:
     duración determinada y una fecha dada (día y hora).
     """
     def __init__(self, empleado, area = None, fecha = None, 
-                 duracion = OCHO_HORAS):
+                 duracion = OCHO_HORAS, id = None):
         if isinstance(empleado, dict):  # Viene de Mongo
-            duracion = empleado['duracion']
-            fecha = empleado['fecha']
-            area = Area(empleado['area'])
-            empleado = Empleado(empleado['empleado'])
+            mongorecord = empleado
+            duracion = mongorecord['duracion']
+            fecha = mongorecord['fecha']
+            area = Area(mongorecord['area'])
+            id = mongorecord['_id']   # Para operaciones de borrado de la BD.
+            empleado = Empleado(mongorecord['empleado'])
         else:   # Compruebo que trae al menos área y fecha:
             if area is None or fecha is None: 
                 raise TypeError, "__init__() takes at least 4 arguments"
@@ -129,6 +131,7 @@ class Tarea:
         if not isinstance(duracion, dt.timedelta):
             duracion = dt.timedelta(seconds = duracion * 60 * 60)
         self.duracion = duracion
+        self._id = id
 
     @property
     def fin(self):

@@ -70,6 +70,33 @@ def get_empleado(nombre):
         # "relacionados" (comilla abuse mode on) con los que voy a operar.
         return Empleado(e['nombre'])
 
+def get_area(nombre):
+    """
+    Devuelve el _primer_ área cuyo nombre coincida con el buscado.
+    Encapsula el "registro" en un objeto Area.
+    """
+    e = data.areas.find_one({'nombre': nombre})
+    if not e:
+        raise ValueError, "El área no existe en la base de datos."
+    else:
+        return Area(e['nombre'])
+
+def get_raw_empleado(nombre):
+    """
+    Devuelve el primer registro mongo del empleado que tenga como nombre 
+    el recibido o None si no se encuentra.
+    """
+    e = data.empleados.find_one({'nombre': nombre})
+    return e
+
+def get_raw_area(nombre):
+    """
+    Devuelve el primer registro mongo del empleado que tenga como nombre 
+    el recibido o None si no se encuentra.
+    """
+    e = data.areas.find_one({'nombre': nombre})
+    return e
+
 def get_all_data():
     """
     En realidad devuelve la lista de todas las tareas, que son los objetos 

@@ -25,9 +25,15 @@ class Scene(graphics.Scene):
         self.first_day = first_day
         graphics.Scene.__init__(self)
         self.width = 500
+        self.load_data(data)
+        self.connect("on-enter-frame", self.on_enter_frame)
+        self.connect("on-mouse-move", self.on_mouse_move)
+
+    def load_data(self, data = None):
         self.day_counts = defaultdict(list)
         lineas, empleados = defaultdict(int), defaultdict(int)
-        self.data = data
+        if data: # Si no recibo datos, uso los que ya tengo (o debería tener).
+            self.data = data
         self.data.sort(key = lambda i: i.ini)
         for tarea in self.data:
             self.day_counts[tarea.ini.date()].append(tarea)
@@ -42,10 +48,15 @@ class Scene(graphics.Scene):
                                                   reverse=True)]
         self.empleados = empleados.keys()
         self.empleados.sort(key = lambda e: e.nombre)
+        self.lineas.sort(key = lambda a: a.nombre)
         self.bars = {}
+        self.coords_y = {}  # coordenadas y de cada empleado/línea
+        self.coords_dias = {}       # coordenadas x de cada día
         self.labels = {"empleados": {}, 
                        "totales": {}, 
-                       "días": {}}
+                       "días": {}, 
+                       "lineas": {}}    # No se usa en Scene, pero SceneArea
+                                        # hereda este método tal cual. 
         self.grid = []
         if self.data:
             self.start_date = self.data[0].ini.date()
@@ -70,8 +81,19 @@ class Scene(graphics.Scene):
         else:
             self.start_date = self.end_date = self.start_datetime \
                 = self.end_datetime = None
-        self.connect("on-enter-frame", self.on_enter_frame)
-        self.connect("on-mouse-move", self.on_mouse_move)
+
+    def reload_data(self, new_data, event = None):
+        """
+        Como cargo las tareas al inicio, un simple redraw no va a refrescar 
+        los datos mostrados. Hay que recargar los datos desde el backend y 
+        redibujar después (el expose_event se encargará).
+        """
+        self.clrscr()
+        self.data = new_data
+        self.load_data()
+        if not event:
+            event = gtk.gdk.Event(gtk.gdk.EXPOSE)
+        self.emit("expose-event", event)
 
     def clrscr(self):
         self.clear()
@@ -115,10 +137,13 @@ class Scene(graphics.Scene):
         self.grid.append(hline)
         self.add_child(hline)
         ancho_label_nombre = lnombre.measure(nombre)[0]
+        self.coords_y[lnombre.y] = empleado
         return ancho_label_nombre
 
     def create_vlines(self, full_days, x, fecha):
         """Líneas de días.""" 
+        # Se invoca cada día, pero solo pinta cuando corresponde.
+        self.coords_dias[x] = fecha
         if len(full_days) <= 7: # Si muestro una semana, las pongo todas.
             self.pintar_linea_vertical(x, 
                                        label = self.build_label_fecha(fecha))
@@ -302,21 +327,109 @@ class Scene(graphics.Scene):
                 ldia.y = 13
 
     def on_mouse_move(self, scene, event):
-        active_bar = None
         # find if we are maybe on a bar
-        current_x, current_y = event.get_coords()
-        for tarea in self.bars:
-            bar = self.bars[tarea]
-            if ((bar.x < current_x < bar.x + bar.width) 
-                and (bar.y < current_y < bar.y + bar.height)):
-                active_bar = bar
-                break
+        active_bar = self.get_active_bar(*event.get_coords())
         if active_bar:
             self.set_tooltip_text(str(active_bar.tarea))
         else:
             self.set_tooltip_text("")
             #self.set_tooltip_text(str(event.get_coords()))
         self.redraw()
+
+    def get_actives_bars(self, current_x, current_y):
+        """
+        Devuelve las barras de tareas que se encuentren bajo el cursor o la 
+        lista vacía si el puntero está en una zona vacía.
+        """
+        actives_bars = []
+        for tarea in self.bars:
+            bar = self.bars[tarea]
+            if ((bar.x < current_x < bar.x + bar.width) 
+                and (bar.y < current_y < bar.y + bar.height)):
+                actives_bars.append(bar)
+        return actives_bars
+
+    def get_active_bar(self, current_x, current_y):
+        """
+        Devuelve la tarea de la barra que esté bajo el cursor o None si está 
+        en un área vacía.
+        """
+        #try:
+        #    return self.get_actives_bars()[0]
+        #except IndexError:
+        #    return None
+        # Optimización:
+        active_bar = None
+        for tarea in self.bars:
+            bar = self.bars[tarea]
+            if ((bar.x < current_x < bar.x + bar.width) 
+                and (bar.y < current_y < bar.y + bar.height)):
+                active_bar = bar
+                break
+        return active_bar
+
+    def get_actives_tareas(self, x, y):
+        """
+        Devuelve una lista con las tareas de las barras bajo el cursor.
+        """
+        tareas = [b.tarea for b in self.get_actives_bars(x, y)]
+        return tareas
+
+    def get_active_tarea(self, x, y):
+        """
+        Devuelve la tarea activa. Si hay varias barras superpuestas en la 
+        misma posición bajo el cursor, solo devuelve la tarea de la primera 
+        de ellas.
+        """
+        return self.get_active_bar(x, y).tarea
+
+    def get_anno_activo(self):
+        """
+        Siempre devuelve el año mostrado arriba a la izquierda, que es el año 
+        del primer día de la gráfica.
+        """
+        return self.start_date.year
+
+    def get_mes_activo(self, x = None, y = None):
+        mes = self.start_date 
+        if x:
+            mes = self.get_active_day(x)
+        return mes
+
+    def get_dia_activo(self, x = None, y = None):
+        dia = self.start_date
+        if x:
+            dia = self.get_active_day(x)
+        return dia
+
+    def get_active_empleado(self, x, y = None):
+        """
+        Devuelve el empleado (o línea si estamos en la vista por línea) al 
+        que corresponde la coordenada «y».
+        """
+        if y is None:
+            y = x   # No ha mandado (x, y). Solo la y en el primer argumento.
+        ys = self.coords_y.keys()
+        ys.sort()
+        empleado = None
+        for yy in ys:
+            if yy >= y:
+                return empleado
+            empleado = self.coords_y[yy]
+        # El None se devuelve por defecto. No hace falta un return empleado.  
+
+    def get_active_day(self, x, y = None):
+        """
+        Devuelve el día al que corresponde la coordenada «x».
+        """
+        xs = self.coords_dias.keys()
+        xs.sort()
+        dia = None
+        for xx in xs:
+            if xx >= x:
+                return dia
+            dia = self.coords_dias[xx]
+        return dia
 
 
 def color_por_area(area, areas):
@@ -330,7 +443,6 @@ def color_por_area(area, areas):
                "#22e", "#88f", "#8ad", "#8ae", "#8af"]
     color = colores[indice % len(colores)]
     return color
-
 
 def color_tarea(tarea, z):
     """
@@ -364,6 +476,11 @@ class ScenePorArea(Scene):
                        "totales": {}, 
                        "días": {}}
         # XXX self.lineas = sorted(self._lineas.keys())
+
+    def reload_data(self, *args, **kw):
+        Scene.reload_data(self, *args, **kw)
+        self.labels.pop("empleados")
+        self.labels["lineas"] = {} 
 
     def create_label_total(self, area, alto_label, alto_bar):
         """
@@ -403,6 +520,7 @@ class ScenePorArea(Scene):
         self.grid.append(hline)
         self.add_child(hline)
         ancho_label_nombre = lnombre.measure(nombre)[0]
+        self.coords_y[lnombre.y] = area
         return ancho_label_nombre
 
     def create_bar(self, tarea, alto_bar, cur_x, j):
@@ -452,9 +570,9 @@ class ScenePorArea(Scene):
         offset_totales = max(anchos_totales) + 5    # Por la derecha.
         for area in self.lineas:
             ancho_label_nombre = self.create_label_area(area, 
-                                                            alto_label, 
-                                                            alto_bar, 
-                                                            offset_totales)
+                                                        alto_label, 
+                                                        alto_bar, 
+                                                        offset_totales)
             anchos_areas.append(ancho_label_nombre)
         if self.lineas:  # Una línea más debajo del último area
             hline = graphics.Rectangle(self.width + offset_totales, 1, 
@@ -510,14 +628,9 @@ class ScenePorArea(Scene):
             print "-" * 80
 
     def on_mouse_move(self, scene, event):
-        actives_bars = []
         # find if we are maybe on a bar(s)
         current_x, current_y = event.get_coords()
-        for tarea in self.bars:
-            bar = self.bars[tarea]
-            if ((bar.x < current_x < bar.x + bar.width) 
-                and (bar.y < current_y < bar.y + bar.height)):
-                actives_bars.append(bar)
+        actives_bars = self.get_actives_bars(current_x, current_y)
         if actives_bars:
             self.set_tooltip_text("\n".join(
                 [str(a.tarea) for a in actives_bars]))
@@ -525,6 +638,7 @@ class ScenePorArea(Scene):
             self.set_tooltip_text("")
             #self.set_tooltip_text(str(event.get_coords()))
         self.redraw()
+
 
 def calculate_zbuffer(ts):
     """
@@ -536,6 +650,10 @@ def calculate_zbuffer(ts):
     determinados casos la más corta termina después de la más larga, y ahí 
     una parte de la tarea corta sería de un color y otra de otra.
     """
+    # John Carmack, no sabes cuánto te odio. Primero por tener un nombre tan 
+    # jodidamente chanante. Y segundo por hacer magia con tu z-buffer y tan 
+    # pocos recursos mientas que yo, con gigas de RAM y un lenguaje de alto 
+    # nivel... ya ves la mierda que todavía ni he podido terminar.
     z = dict(zip(ts, (1, ) * len(ts)))
     # Dentro de cada área, organizo las tareas por hora de inicio.
     por_area = {}
