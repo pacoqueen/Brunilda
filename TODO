@@ -12,7 +12,7 @@
 [ ] Opción de imprimir e imprimir calendario laboral de cada empleado.
 [ ] Optimizar. La interfaz es lentísima cuando hay muchas tareas.
 [ ] ¿Drag'n drop? ¿Selección múltiple de tareas y permitir arrastrarlas?
-[ ] CRUD para empleados y líneas o importar de ginn. (Tal vez no haga falta)
+[ ] CRUD para empleados y líneas. 
 [X] Cursor ocupado mientras redibujo gráfica.
 [X] "Tiradores" en los extremos de una tarea para redimensionarla o, mejor, desplazarla.
 [X] Redondear nuevas tareas a las 6, 14, 18, 22
@@ -22,3 +22,18 @@
 [X] Mostrar en el diálogo de asignación el empleado/línea que se va a asignar para que el usuario esté seguro de dónde ha pinchado.
 [ ] Evitar asignar el mismo empleado más de una vez a la misma hora y en la misma línea, así como ponerlo en dos líneas a la vez. Tal vez el "se_solapa" de sample me pueda valer.
 [ ] Falta un scroll horizontal
+[ ] Calendario de vacaciones para las líneas donde no se pueden asignar empleados. Cada línea un calendario independiente.
+[ ] Asignar por lotes: seleccionar patrón y rellenar todo el año del empleado. Pro ejemplo: 5x2 (5 turnos seguidos y dos de descanso).
+[ ] Colores para cada línea de más claro a más oscuro dependiendo del turno. P. ej.: Gtx. rojo: rojo claro en turno de 6:00, rojo medio en 14 y oscuro en noche.
+[ ] Arreglar scroll horizontal. Si no hay tareas, no permite llegar hasta diciembre en zoom = 31.
+[ ] Ventana de configuración para horas anuales. Patrones de asingación automática. Número de empleados por turno. Colores de línaas y trabajadores por turno y turnos por día. Usar vista por línea para crear calendario de los turnos en los que debe trabajar cada línea cada día del año- Reusar la asingación automática por patrones de los empleados.
+[ ] Mostrar también horas de recuperación en ventana.
+[ ] Al crear un backend.area nuevo casca la interfaz gráfica (con show_empty = True).
+[ ] Alerta que avise de los días que alguna línea tenga que trabajar pero no tenga trabajadores asignados, menos de los 3 por turno (configurable) o más.
+[ ] En la impresión sacar por cada empleado y mes:
+    * Gráfico de turnos (fracción de self.Scene de gui).
+    * Horas totales.
+    * Horas de recuperación = diferencia hasta 40 horas semanales (* semanas del mes -semanas fraccionadas, contar como 8 horas/día-)
+    * Total horas noches.
+    * Total horas recuperación (las que pasasn de las 40 semanales, se acumulan .
+    * Horas extra anuales (las que pasan de las anuales, contando recuperación)
