@@ -1,16 +1,20 @@
 [X] Añadir escala inferior de día/hora y marcas verticales de separación de meses
 [X] Añadir tooltip con empleado - área tal y como está en DayLine
 [X] Añadir labels a izquierda con empleados y a la derecha con totales
-[ ] Crear la vista de línea.
+[X] Crear la vista de línea.
 [X] Colorear diferente las tareas de determinadas áreas
 [X] Slider de zoom y redibujar (a ver si consigues que sea fluido).
 [X] Corregir el "glitch" de los totales de horas.
 [X] Líneas horizontales para diferenciar los empleados.
 [X] Mostrar fecha cada 15 días o cada mes o algo así.
 [ ] Pensar una forma cómoda para el usuario de asignar tareas a empleados en líneas.
-[X] Cabmar el sample en el módulo storage por un backend de verdad rápido y portable. Tipo MongoDB. En realidad los diccionarios parecen ideales para almacenarse en bases de datos NoSQL.
+[X] Cambiar el sample en el módulo storage por un backend de verdad rápido y portable. Tipo MongoDB. En realidad los diccionarios parecen ideales para almacenarse en bases de datos NoSQL.
 [ ] Opción de imprimir e imprimir calendario laboral de cada empleado.
 [ ] Optimizar. La interfaz es lentísima.
 [ ] ¿Drag'n drop? ¿Selección múltiple de tareas y permitir arrastrarlas?
 [ ] CRUD para empleados y líneas o importar de ginn.
 [ ] Cursor ocupado mientras redibujo gráfica.
+[ ] "Tiradores" en los extremos de una tarea para redimensionarla o, mejor, desplazarla.
+[ ] Redondear nuevas tareas a las 6, 14, 18, 22
+[ ] Otro total más con el total del año de cada empleado/línea a la derecha de los totales de la franja mostrada.
+[ ] Intentar adivinar la hora en la que ha pinchado el usuario al crear una nueva tarea y pasarla por defecto al diálogo de seleccionar empleado/área.

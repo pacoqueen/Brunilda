@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import backend
+from models import Tarea, Empleado, Area
 #import sample
 import datetime
 
@@ -65,4 +66,26 @@ def limpiar_linea(a, start, end):
                                          "descripcion": a.descripcion}, 
                                 'fecha': {"$gte": start, 
                                           "$lt": end}})
+
+def nueva_tarea(empleado, linea, duracion, fecha, hora):
+    """
+    Crea en el backend una nueva tarea y devuelve un objeto Tarea equivalente.
+    """
+    if isinstance(fecha, (datetime.date, datetime.datetime)):
+        fecha = datetime.datetime(year = fecha.year, 
+                                  month = fecha.month, 
+                                  day = fecha.day, 
+                                  hour = hora)
+    if isinstance(empleado, Empleado):
+        empleado = empleado.nombre
+    if isinstance(linea, Area):
+        linea = linea.nombre
+    tarea = {'empleado': {'nombre': empleado}, 
+             'area': {'nombre': linea, 
+                      'descripcion': ''}, 
+             'duracion': duracion, 
+             'fecha': fecha}
+    nueva_tarea_id = backend.data.tareas.insert(tarea)
+    new_tarea = backend.data.tareas.find_one(nueva_tarea_id)
+    return Tarea(new_tarea)
 

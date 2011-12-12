@@ -12,5 +12,5 @@ Graphics library based on hamster-applet (Toms Bauģis <toms.baugis@gmail.com> a
 
 License
 -------
-GPLv3. See COPIYNG.
+GPLv3. See COPYING.
 

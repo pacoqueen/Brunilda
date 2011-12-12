@@ -402,7 +402,7 @@ class Scene(graphics.Scene):
             dia = self.get_active_day(x)
         return dia
 
-    def get_active_empleado(self, x, y = None):
+    def get_active_empleado_or_linea(self, x, y = None):
         """
         Devuelve el empleado (o línea si estamos en la vista por línea) al 
         que corresponde la coordenada «y».

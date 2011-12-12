@@ -65,35 +65,44 @@ class Ventana:
         # ¿Método de más de 20 líneas? ¡¿PERO ESTO QUÉ ES?!
 
     def _cambiar_vista(self, boton):
+        self.ventana.window.set_cursor(gtk.gdk.Cursor(gtk.gdk.WATCH))
+        while gtk.events_pending(): gtk.main_iteration(False)
         self.vista_por_empleado = not boton.get_active()
         if self.vista_por_empleado:
-            lvista = "Ver por empleado"
+            lvista = "Ver por línea"
             self.ventana.set_title("Vista por empleado")
         else:
-            lvista = "Ver por línea"
+            lvista = "Ver por empleado"
             self.ventana.set_title("Vista por línea")
         boton.set_label(lvista)
         self.grafica.remove(self.escena)
         self.load_escena()
         self.grafica.add(self.escena)
         self.grafica.show_all()
+        self.ventana.window.set_cursor(None)
 
     def _update_zoom(self, range):
+        self.ventana.window.set_cursor(gtk.gdk.Cursor(gtk.gdk.WATCH))
+        while gtk.events_pending(): gtk.main_iteration(False)
         self.zoom_level = range.get_value()
         self.grafica.remove(self.escena)
         self.load_escena()
         self.grafica.add(self.escena)
         self.grafica.show_all()
+        self.ventana.window.set_cursor(None)
 
     def _update_first_day(self, range):
         """
         Mueve el primer día mostrado.
         """
+        self.ventana.window.set_cursor(gtk.gdk.Cursor(gtk.gdk.WATCH))
+        while gtk.events_pending(): gtk.main_iteration(False)
         self.first_day = range.get_value()
         self.grafica.remove(self.escena)
         self.load_escena()
         self.grafica.add(self.escena)
         self.grafica.show_all()
+        self.ventana.window.set_cursor(None)
 
     def __salir(self, boton):
         self.ventana.destroy()
@@ -125,6 +134,7 @@ class Ventana:
                     ("Borrar empleado", self.limpiar_empleado), 
                     ("Borrar línea", self.limpiar_linea), 
                     ("Asignar", self.asignar),
+                    ("Asignar por lotes", self.asignar_por_lotes), 
                    )
         self.menuitems = {}
         for o, callback in opciones:
@@ -139,26 +149,22 @@ class Ventana:
         # TODO: Según las HIG de gnome debería advertir antes.
         storage.delete_all()
         # Tengo que recargar los datos para ser coherente con los de la escena.
-        self.tareas = storage.get_all_data()
-        self.escena.reload_data(self.tareas)
+        self.refresh_escena()
         
     def limpiar_anno(self, item):
         anno = self.escena.get_anno_activo()
         storage.delete_year(anno)
-        self.tareas = storage.get_all_data()
-        self.escena.reload_data(self.tareas)
+        self.refresh_escena()
 
     def limpiar_mes(self, item):
         fecha = self.escena.get_mes_activo(self.clic_x)
         storage.delete_month(fecha.year, fecha.month)
-        self.tareas = storage.get_all_data()
-        self.escena.reload_data(self.tareas)
+        self.refresh_escena()
 
     def limpiar_dia(self, item):
         dia = self.escena.get_dia_activo(self.clic_x)
         storage.delete_day(dia.year, dia.month, dia.day)
-        self.tareas = storage.get_all_data()
-        self.escena.reload_data(self.tareas)
+        self.refresh_escena()
 
     def limpiar_empleado(self, item):
         """
@@ -171,12 +177,11 @@ class Ventana:
         # nunca más al no tener tareas activas. Esto es así por cómo construye 
         # la lista de empleados la clase Scene.
         # e = self.escena.get_active_tarea(self.clic_x, self.clic_y).empleado
-        e = self.escena.get_active_empleado(self.clic_y)
+        e = self.escena.get_active_empleado_or_linea(self.clic_y)
         ini = self.escena.start_date
         fin = self.escena.end_date + datetime.timedelta(days = 1) 
         storage.limpiar_empleado(e, ini, fin)
-        self.tareas = storage.get_all_data()
-        self.escena.reload_data(self.tareas)
+        self.refresh_escena()
 
     def limpiar_linea(self, item):
         """
@@ -185,26 +190,67 @@ class Ventana:
         Solo activo si estamos en vista por línea.
         """
         # a = self.escena.get_active_tarea(self.clic_x, self.clic_y).area
-        a = self.escena.get_active_empleado(self.clic_y) # area, en realidad
+        a = self.escena.get_active_empleado_or_linea(self.clic_y)
         ini = self.escena.start_date
         fin = self.escena.end_date + datetime.timedelta(days = 1) 
         # linea = área
         storage.limpiar_linea(a, ini, fin)
-        self.tareas = storage.get_all_data()
-        self.escena.reload_data(self.tareas)
+        self.refresh_escena()
     
     def borrar_tarea(self, item):
         tareas = self.escena.get_actives_tareas(self.clic_x, self.clic_y)
         storage.delete_tareas(tareas)
-        self.tareas = storage.get_all_data()
-        self.escena.reload_data(self.tareas)
+        self.refresh_escena()
 
     def asignar(self, item):
         # PORASQUI: Asignar uno a uno los turnos puede ser desesperante. Hay que pensar en un "acelerador". Furthermore: si un empleado no tiene tareas actualmente, no aparece en la gráfica, por tanto es imposible asignarle nada.
-        if self.vista_por_empleado:
-            print "Asignar línea al empleado de la fila."
-        else:
-            print "Asignar empleado a la línea de la fila."
+        fecha = self.escena.get_active_day(self.clic_x, self.clic_y)
+        if fecha:
+            if self.vista_por_empleado:
+                empleado = self.escena.get_active_empleado_or_linea(
+                            self.clic_x, self.clic_y)
+                if empleado:
+                    linea, duracion, hora = self.seleccionar_linea_y_duracion() 
+                    storage.nueva_tarea(empleado, linea, duracion, fecha, hora)
+                    self.refresh_escena()
+            else:
+                linea = self.escena.get_active_empleado_or_linea(self.clic_x, 
+                                                                 self.clic_y)
+                if linea:
+                    empleado, 
+                    duracion, 
+                    hora = self.seleccionar_empleado_y_duracion()
+                    storage.nueva_tarea(empleado, linea, duracion, fecha, hora)
+                    self.refresh_escena()
+
+    def refresh_escena(self):
+        self.tareas = storage.get_all_data()
+        self.escena.reload_data(self.tareas)
+
+    def seleccionar_linea_y_duracion(self):
+        lineas = [a.nombre for a in storage.backend.get_areas()]
+        linea, duracion, hora = dialogo_entrada_combo(titulo = "ASIGNAR TURNO", 
+                            texto = "Seleccione o teclee un área de trabajo:", 
+                            ops = lineas, 
+                            padre = self.ventana)
+        return linea, duracion, hora
+
+    def seleccionar_empleado_y_duracion(self):
+        empleados = [a.nombre for a in storage.backend.get_empleados()]
+        empleado, duracion, hora = dialogo_entrada_combo(
+                            titulo = "ASIGNAR TURNO", 
+                            texto = "Seleccione o teclee un empleado:", 
+                            ops = empleados, 
+                            padre = self.ventana)
+        return empleado, duracion, hora
+
+    def asignar_por_lotes(self, item):
+        """
+        Asigna repetitivamente un empleado a una línea según una frecuencia 
+        especificada por el usuario.
+        """
+        # TODO
+        pass
 
     def _popup(self, widget, event):
         self.clic_x = x = int(event.x)
@@ -220,4 +266,130 @@ class Ventana:
             self.menuitems["Borrar línea"].set_sensitive(
                 not self.vista_por_empleado)
             self.popup_menu.popup(None, None, None, event.button, event.time)
+
+
+def dialogo_entrada_combo(titulo = 'Seleccione una opción', 
+                          texto = '', 
+                          ops = ['Sin opciones'], 
+                          padre = None, 
+                          valor_por_defecto = None):
+    """
+    Muestra un diálogo modal con un combobox con las opciones pasadas.
+    Devuelve el texto tecleado o None si se cancela.
+    Si valor_por_defecto != None, debe ser una cadena.
+    """
+    res = [None, 8, 6]
+    de = gtk.Dialog(titulo,
+                    padre,
+                    gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
+                    (gtk.STOCK_OK, gtk.RESPONSE_OK,
+                     gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL))
+    #-------------------------------------------------------------------#
+    def respuesta_ok_cancel_combo(dialog, response, res, ocho, doce):
+        if response == gtk.RESPONSE_OK:
+            combo = dialog.vbox.get_children()[1]
+            if ocho.get_active():
+                radio = 8
+            else:
+                radio = 12
+            if h6.get_active():
+                radio_horas = 6
+            elif h14.get_active():
+                radio_horas = 14
+            elif h18.get_active():
+                radio_horas = 18
+            else:
+                radio_horas = 22
+            res[0] = combo.child.get_text()
+            res[1] = radio
+            res[2] = radio_horas
+        else:
+            res[0] = None
+            res[1] = 0
+            res[2] = 0
+    #-------------------------------------------------------------------#
+    def pasar_foco(completion, model, iter):                            #
+        de.action_area.get_children()[1].grab_focus()                   #
+    #-------------------------------------------------------------------#
+    txt = gtk.Label("\n    %s    \n" % texto)
+    model = gtk.ListStore(str)
+    for t in ops:
+        model.append((t, ))
+    combo = gtk.ComboBoxEntry(model)
+    completion = gtk.EntryCompletion()
+    completion.set_model(model)
+    combo.child.set_completion(completion)
+        #-------------------------------------------------------#
+    def match_func(completion, key, iter, (column, entry)):
+        model = completion.get_model()
+        text = model.get_value(iter, column)
+        if text == None:
+            return False
+        key = entry.get_text()
+        try:
+            key = unicode(key, "utf").lower()               #
+        except:                                             #
+            key = key.lower()                               #
+        try:                                                #
+            text = unicode(text, "utf").lower()             #
+        except:                                             #
+            text = text.lower()                             #
+        try:                                                #
+            return key in text                              #
+        except:                                             #
+            # Error de codificación casi seguro.            #
+            print key                                       #
+            print text                                      #
+            return False                                    #
+    #-------------------------------------------------------#
+    completion.set_text_column(0)
+    completion.set_match_func(match_func, (0, combo.child))
+    # completion.set_minimum_key_length(2)
+    # completion.set_inline_completion(True)
+    #---------------------------------------------------#
+    def iter_seleccionado(completion, model, iter):     #
+        combo.child.set_text(model[iter][0])            #
+    #---------------------------------------------------#
+    completion.connect('match-selected', iter_seleccionado)
+    if valor_por_defecto != None:
+        model = combo.get_model()
+        iter = model.get_iter_first()
+        while iter != None \
+              and model[model.get_path(iter)] != valor_por_defecto:
+            iter = model.iter_next()
+        combo.set_active_iter(iter)
+    input = combo.child.get_completion()
+    input.connect("match_selected", pasar_foco)
+    hbox = gtk.HBox(spacing = 5)
+    icono = gtk.Image()
+    icono.set_from_stock(gtk.STOCK_DIALOG_QUESTION, gtk.ICON_SIZE_DIALOG)
+    hbox.pack_start(icono)
+    hbox.pack_start(txt)
+    de.vbox.pack_start(hbox)
+    combo.show()
+    de.vbox.pack_start(combo)
+    radio_duracion = gtk.HBox(spacing = 5)
+    radio_horas = gtk.HBox()
+    ocho = gtk.RadioButton(label = "8 horas")
+    doce = gtk.RadioButton(ocho, "12 horas")
+    h6 = gtk.RadioButton(label = "6:00")
+    h14 = gtk.RadioButton(h6, "14:00")
+    h18 = gtk.RadioButton(h6, "18:00")
+    h22 = gtk.RadioButton(h6, "22:00")
+    radio_duracion.pack_start(ocho)
+    radio_duracion.pack_start(doce)
+    radio_horas.pack_start(h6)
+    radio_horas.pack_start(h14)
+    radio_horas.pack_start(h18)
+    radio_horas.pack_start(h22)
+    de.vbox.pack_start(radio_duracion)
+    de.vbox.pack_start(radio_horas)
+    de.set_transient_for(padre)
+    de.set_position(gtk.WIN_POS_CENTER_ON_PARENT)
+    hbox.show_all()
+    de.vbox.show_all()
+    de.connect("response", respuesta_ok_cancel_combo, res, ocho, doce)
+    de.run()
+    de.destroy()
+    return res
 
