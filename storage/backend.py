@@ -34,7 +34,8 @@ def get_empleados():
     empleados = []
     for e in data.empleados.find():
         objetoEmpleado = Empleado(e['nombre'])
-        empleados.append(objetoEmpleado)
+        if objetoEmpleado not in empleados:
+            empleados.append(objetoEmpleado)
     return empleados
 
 def get_areas():
@@ -44,7 +45,8 @@ def get_areas():
     areas = []
     for a in data.areas.find():
         objetoArea = Area(a['nombre'])
-        areas.append(objetoArea)
+        if objetoArea not in areas:
+            areas.append(objetoArea)
     return areas
 
 def get_empleado(nombre):

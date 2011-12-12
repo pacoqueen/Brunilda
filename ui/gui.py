@@ -210,7 +210,8 @@ class Ventana:
                 empleado = self.escena.get_active_empleado_or_linea(
                             self.clic_x, self.clic_y)
                 if empleado:
-                    linea, duracion, hora = self.seleccionar_linea_y_duracion() 
+                    linea, duracion, hora = self.seleccionar_linea_y_duracion(
+                        fecha, empleado) 
                     if linea:
                         storage.nueva_tarea(empleado, linea, duracion, fecha, 
                                             hora)
@@ -220,7 +221,8 @@ class Ventana:
                                                                  self.clic_y)
                 if linea:
                     empleado, duracion, hora \
-                        = self.seleccionar_empleado_y_duracion()
+                        = self.seleccionar_empleado_y_duracion(
+                            fecha, linea)
                     if empleado:
                         storage.nueva_tarea(empleado, linea, duracion, fecha, 
                                             hora)
@@ -230,19 +232,25 @@ class Ventana:
         self.tareas = storage.get_all_data()
         self.escena.reload_data(self.tareas)
 
-    def seleccionar_linea_y_duracion(self):
+    def seleccionar_linea_y_duracion(self, fecha, empleado):
         lineas = [a.nombre for a in storage.backend.get_areas()]
+        texto = "Va a asignar a %s el %s.\n\n" % (
+            empleado.nombre, fecha.strftime("%A, %d de %B de %Y")) 
+        texto += "Seleccione o teclee un área de trabajo:" 
         linea, duracion, hora = dialogo_entrada_combo(titulo = "ASIGNAR TURNO", 
-                            texto = "Seleccione o teclee un área de trabajo:", 
+                            texto = texto, 
                             ops = lineas, 
                             padre = self.ventana)
         return linea, duracion, hora
 
-    def seleccionar_empleado_y_duracion(self):
+    def seleccionar_empleado_y_duracion(self, fecha, linea):
         empleados = [a.nombre for a in storage.backend.get_empleados()]
+        texto = "Va a asignar a %s el %s.\n\n" % (
+            empleado.nombre, fecha.strftime("%A, %d de %B de %Y")) 
+        texto += "Seleccione o teclee un empleado:"
         empleado, duracion, hora = dialogo_entrada_combo(
                             titulo = "ASIGNAR TURNO", 
-                            texto = "Seleccione o teclee un empleado:", 
+                            texto = texto, 
                             ops = empleados, 
                             padre = self.ventana)
         return empleado, duracion, hora
@@ -363,7 +371,7 @@ def dialogo_entrada_combo(titulo = 'Seleccione una opción',
     def pasar_foco(completion, model, iter):                            #
         de.action_area.get_children()[1].grab_focus()                   #
     #-------------------------------------------------------------------#
-    txt = gtk.Label("\n    %s    \n" % texto)
+    txt = gtk.Label("\n%s\n" % texto)
     model = gtk.ListStore(str)
     for t in ops:
         model.append((t, ))
@@ -421,13 +429,26 @@ def dialogo_entrada_combo(titulo = 'Seleccione una opción',
     combo.show()
     de.vbox.pack_start(combo)
     radio_duracion = gtk.HBox(spacing = 5)
+    radio_duracion.pack_start(gtk.Label("Duración del turno:"))
     radio_horas = gtk.HBox()
+    radio_horas.pack_start(gtk.Label("Hora de inicio:"))
+    def deshabilitar_horas(r, ocho, doce, h6, h14, h18, h22):
+        h6.set_sensitive(ocho.get_active() or doce.get_active())
+        h14.set_sensitive(ocho.get_active())
+        h18.set_sensitive(doce.get_active())
+        h22.set_sensitive(ocho.get_active())
+        for h in (h6, h14, h18, h22):
+            if not h.get_sensitive() and h.get_active():
+                h6.set_active(True)
     ocho = gtk.RadioButton(label = "8 horas")
     doce = gtk.RadioButton(ocho, "12 horas")
     h6 = gtk.RadioButton(label = "6:00")
     h14 = gtk.RadioButton(h6, "14:00")
     h18 = gtk.RadioButton(h6, "18:00")
+    h18.set_sensitive(False)    # Por defecto, turnos de 8 horas.
     h22 = gtk.RadioButton(h6, "22:00")
+    ocho.connect("toggled", deshabilitar_horas, ocho, doce, h6, h14, h18, h22)
+    doce.connect("toggled", deshabilitar_horas, ocho, doce, h6, h14, h18, h22)
     radio_duracion.pack_start(ocho)
     radio_duracion.pack_start(doce)
     radio_horas.pack_start(h6)
