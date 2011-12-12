@@ -108,8 +108,10 @@ class Scene(graphics.Scene):
             t.empleado == empleado 
             and t.fecha >= self.start_datetime
             and t.fecha < self.end_datetime]
+        tareas_empleado = [t for t in self.data if t.empleado == empleado]
         total = empleado.calcular_horas_asignadas(tareas_empleado_rango)
-        txttotal = str(int(total))
+        total_totaloso = empleado.calcular_horas_asignadas(tareas_empleado)
+        txttotal = "%d (%d)" % (int(total), int(total_totaloso))
         label_total = graphics.Label(txttotal, alto_label, "#333", 
                                 visible = True)
         self.labels["totales"][empleado] = label_total

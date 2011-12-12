@@ -142,6 +142,8 @@ class Ventana:
             self.menuitems[o] = menuitem
             popup_menu.add(menuitem)
             menuitem.connect("activate", callback)
+        # PORASQUI: Asignar uno a uno los turnos puede ser desesperante. Hay que pensar en un "acelerador". Furhermore: hasta que tenga claro cómo hacerlo, esta opción está deshabilitada:
+        self.menuitems["Asignar por lotes"].set_sensitive(False)
         popup_menu.show_all()
         return popup_menu
 
@@ -203,7 +205,6 @@ class Ventana:
         self.refresh_escena()
 
     def asignar(self, item):
-        # PORASQUI: Asignar uno a uno los turnos puede ser desesperante. Hay que pensar en un "acelerador". Furthermore: si un empleado no tiene tareas actualmente, no aparece en la gráfica, por tanto es imposible asignarle nada.
         fecha = self.escena.get_active_day(self.clic_x, self.clic_y)
         if fecha:
             if self.vista_por_empleado:
