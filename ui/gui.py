@@ -211,16 +211,20 @@ class Ventana:
                             self.clic_x, self.clic_y)
                 if empleado:
                     linea, duracion, hora = self.seleccionar_linea_y_duracion() 
-                    storage.nueva_tarea(empleado, linea, duracion, fecha, hora)
-                    self.refresh_escena()
+                    if linea:
+                        storage.nueva_tarea(empleado, linea, duracion, fecha, 
+                                            hora)
+                        self.refresh_escena()
             else:
                 linea = self.escena.get_active_empleado_or_linea(self.clic_x, 
                                                                  self.clic_y)
                 if linea:
                     empleado, duracion, hora \
                         = self.seleccionar_empleado_y_duracion()
-                    storage.nueva_tarea(empleado, linea, duracion, fecha, hora)
-                    self.refresh_escena()
+                    if empleado:
+                        storage.nueva_tarea(empleado, linea, duracion, fecha, 
+                                            hora)
+                        self.refresh_escena()
 
     def refresh_escena(self):
         self.tareas = storage.get_all_data()
@@ -265,7 +269,56 @@ class Ventana:
             self.menuitems["Borrar línea"].set_sensitive(
                 not self.vista_por_empleado)
             self.popup_menu.popup(None, None, None, event.button, event.time)
+        elif event.button == 1 and self.vista_por_empleado: 
+            # Mover barra 2 horas a la izq. o der.
+            barstareas = self.escena.get_actives_bars(x, y)
+            for b in barstareas:
+                xini = b.x
+                xfin = b.x + b.width
+                pivote = xini + ((xfin - xini) / 2)
+                if b.tarea.horas == 12:
+                    horas_inicio_validas = (6, 18)
+                elif b.tarea.horas == 8:
+                    horas_inicio_validas = (6, 14, 22)
+                else:
+                    horas_inicio_validas = [i for i in range(24) if i % 2 == 0]
+                if x < pivote:
+                    # con delta voy a redondear a las horas de los turnos.
+                    hini = b.tarea.ini.hour - 2
+                    delta = -2
+                    while hini not in horas_inicio_validas:
+                        delta -= 2
+                        hini -= 2
+                    # self.mover_barra_tarea(b, -2)
+                    self.mover_barra_tarea(b, delta)
+                elif x > pivote:
+                    hini = b.tarea.ini.hour + 2
+                    delta = 2
+                    while hini not in horas_inicio_validas:
+                        delta += 2
+                        hini += 2
+                    # self.mover_barra_tarea(b, +2)
+                    self.mover_barra_tarea(b, delta)
 
+    def mover_barra_tarea(self, barra, horas):
+        """
+        Mueve la barra la cantidad de horas especificada, así como la hora de 
+        inicio de la tarea a la que corresponde.
+        """
+        obj_tarea = barra.tarea
+        if not isinstance(horas, datetime.timedelta):
+            delta = datetime.timedelta(hours = horas)
+        storage.modificar(obj_tarea, 
+                          ('fecha', 
+                           obj_tarea.fecha + delta))
+        pixels = self.escena.hour_pixel * horas
+        barra.x += pixels
+        #self.refresh_escena()
+        # Tengo que actualizar el dato que guarda la escena. Creo que es más
+        # rápido que volver a recrear la gráfica completa. 
+        for t in self.escena.data:
+            if t == obj_tarea:
+                t.fecha += datetime.timedelta(hours=horas)
 
 def dialogo_entrada_combo(titulo = 'Seleccione una opción', 
                           texto = '', 

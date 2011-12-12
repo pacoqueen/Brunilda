@@ -1370,6 +1370,7 @@ class Polygon(Sprite):
         self.connect("on-render", self.on_render)
 
     def on_render(self, sprite):
+        print " --->", self.points
         if not self.points: return
 
         self.graphics.move_to(*self.points[0])

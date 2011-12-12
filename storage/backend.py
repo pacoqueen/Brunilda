@@ -15,11 +15,12 @@ DBERROR = 1
 
 # Primero, conectamos.
 try:
-    conn = Connection()
+    conn = Connection()                     # XXX: Comentar en producción.
+    # conn = Connection("192.168.1.100")    # XXX: Descomentar en producción.
 except Exception, e:
     txterror = "No se pudo conectar a la base de datos.\n"\
                "¿Está mongod ejecutándose?\nExcepción: %s" % e
-    sys.sdterr.write(txterror)
+    sys.stderr.write(txterror)
     sys.exit(DBERROR)
 
 # Ahora, abrimos la base de datos (si es la primera vez, no se guardará nada 
@@ -31,7 +32,7 @@ def get_empleados():
     Devuelve una lista con todos los empleados.
     """
     empleados = []
-    for e in data.empleados.findl():
+    for e in data.empleados.find():
         objetoEmpleado = Empleado(e['nombre'])
         empleados.append(objetoEmpleado)
     return empleados
@@ -132,4 +133,4 @@ def get_all_data_by_empleado():
         except KeyError:
             res[e] = [t]
     return res
-
+   

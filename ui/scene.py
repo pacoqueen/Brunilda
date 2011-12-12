@@ -223,6 +223,7 @@ class Scene(graphics.Scene):
     def on_enter_frame(self, scene, context):
         if not self.data:
             return
+        self.context = context  # XXX
         g = graphics.Graphics(context)
         g.set_line_style(width=1)
         days = (self.end_date - self.start_date).days
@@ -331,10 +332,43 @@ class Scene(graphics.Scene):
         active_bar = self.get_active_bar(*event.get_coords())
         if active_bar:
             self.set_tooltip_text(str(active_bar.tarea))
+            #self.pintar_flechas_movimiento(active_bar)
         else:
             self.set_tooltip_text("")
+            #try:
+            #    self.borrar_flechas_movimiento()
+            #except (AttributeError, NameError, ValueError): 
+            #    # Unbound. No hay ninguna pintada.
+            #    pass
             #self.set_tooltip_text(str(event.get_coords()))
         self.redraw()
+
+    def pintar_flechas_movimiento(self, bar):
+        return  # ¡Esto NO FUNCIONA Y NO SÉ POR QUÉ!
+        izq = int(bar.x)
+        der = izq + bar.width
+        inf = int(bar.y)
+        sup = inf + bar.height
+        if bar.width > 10:
+            i = graphics.Polygon(((izq, inf + ((sup - inf) / 2)), 
+                                  (izq + 5, sup), 
+                                  (izq + 5, inf)), 
+                                 fill = "#000", stroke = "#FFF")
+            d = graphics.Polygon(((der, inf + ((sup - inf) / 2)), 
+                                  (der - 5, sup), 
+                                  (der - 5, inf)), 
+                                 fill = "#000", stroke = "#FFF")
+            self.add_child(i)
+            self.add_child(d)
+            i.bring_to_front()
+            d.bring_to_front()
+            self.flechas = i, d
+            i._draw(self.context)
+
+    def borrar_flechas_movimiento(self):
+        self.remove_child(self.flechas[0])
+        self.remove_child(self.flechas[1])
+        self.flechas = (None, None)
 
     def get_actives_bars(self, current_x, current_y):
         """
@@ -419,7 +453,7 @@ class Scene(graphics.Scene):
             if yy >= y:
                 return empleado
             empleado = self.coords_y[yy]
-        # El None se devuelve por defecto. No hace falta un return empleado.  
+        return empleado # Es el último, entonces.
 
     def get_active_day(self, x, y = None):
         """
@@ -441,7 +475,7 @@ def color_por_area(area, areas):
     """
     # TODO: Único, lo que se dice único... como haya más áreas que 
     # colores harcoded, lo llevas claro.
-    indice = areas.index(area)
+    indice = sorted(areas).index(area)
     colores = ["#339", "#77a", "#66b", "#55c", "#44d", 
                "#22e", "#88f", "#8ad", "#8ae", "#8af"]
     color = colores[indice % len(colores)]
@@ -510,7 +544,7 @@ class ScenePorArea(Scene):
         """
         Crea y coloca tanto el label del area como la línea horizontal.
         """
-        nombre = area.nombre
+        nombre = area.nombre or ""
         lnombre = graphics.Label(nombre, alto_label, "#333", visible = True)
         self.labels["lineas"][area] = lnombre
         lnombre.x = 0

@@ -89,3 +89,17 @@ def nueva_tarea(empleado, linea, duracion, fecha, hora):
     new_tarea = backend.data.tareas.find_one(nueva_tarea_id)
     return Tarea(new_tarea)
 
+def modificar(item, *args):
+    """
+    Guarda en la base de datos los cambios hechos en item.
+    """
+    if isinstance(item, Tarea):
+        dict_t = item._to_dict()
+        t = backend.data.tareas.find_one(dict_t)
+        for campo, nuevo_valor in args:
+            t[campo] = nuevo_valor
+        backend.data.tareas.save(t)
+    else:
+        raise NotImplemented, "Operación no implementada para el ítem %s" % (
+            item)
+

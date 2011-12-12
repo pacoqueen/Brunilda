@@ -13,10 +13,11 @@
 [ ] Optimizar. La interfaz es lentísima.
 [ ] ¿Drag'n drop? ¿Selección múltiple de tareas y permitir arrastrarlas?
 [ ] CRUD para empleados y líneas o importar de ginn.
-[ ] Cursor ocupado mientras redibujo gráfica.
-[ ] "Tiradores" en los extremos de una tarea para redimensionarla o, mejor, desplazarla.
-[ ] Redondear nuevas tareas a las 6, 14, 18, 22
+[X] Cursor ocupado mientras redibujo gráfica.
+[X] "Tiradores" en los extremos de una tarea para redimensionarla o, mejor, desplazarla.
+[X] Redondear nuevas tareas a las 6, 14, 18, 22
 [ ] Otro total más con el total del año de cada empleado/línea a la derecha de los totales de la franja mostrada.
 [ ] Intentar adivinar la hora en la que ha pinchado el usuario al crear una nueva tarea y pasarla por defecto al diálogo de seleccionar empleado/área.
-[ ] BUG: El último empleado y la última línea no se pueden asignar porque falla la función get_active_empleado_or_linea.
+[X] BUG: El último empleado y la última línea no se pueden asignar porque falla la función get_active_empleado_or_linea.
 [ ] Mostrar en el diálogo de asignación el empleado/línea que se va a asignar para que el usuario esté seguro de dónde ha pinchado.
+[ ] Evitar asignar el mismo empleado más de una vez a la misma hora y en la misma línea, así como ponerlo en dos líneas a la vez. Tal vez el "se_solapa" de sample me pueda valer.
