@@ -18,3 +18,5 @@
 [ ] Redondear nuevas tareas a las 6, 14, 18, 22
 [ ] Otro total más con el total del año de cada empleado/línea a la derecha de los totales de la franja mostrada.
 [ ] Intentar adivinar la hora en la que ha pinchado el usuario al crear una nueva tarea y pasarla por defecto al diálogo de seleccionar empleado/área.
+[ ] BUG: El último empleado y la última línea no se pueden asignar porque falla la función get_active_empleado_or_linea.
+[ ] Mostrar en el diálogo de asignación el empleado/línea que se va a asignar para que el usuario esté seguro de dónde ha pinchado.

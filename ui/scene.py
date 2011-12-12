@@ -411,7 +411,10 @@ class Scene(graphics.Scene):
             y = x   # No ha mandado (x, y). Solo la y en el primer argumento.
         ys = self.coords_y.keys()
         ys.sort()
-        empleado = None
+        try:
+            empleado = self.coords_y[ys[0]]
+        except (KeyError, IndexError):
+            empleado = None     # No data?
         for yy in ys:
             if yy >= y:
                 return empleado

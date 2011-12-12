@@ -217,9 +217,8 @@ class Ventana:
                 linea = self.escena.get_active_empleado_or_linea(self.clic_x, 
                                                                  self.clic_y)
                 if linea:
-                    empleado, 
-                    duracion, 
-                    hora = self.seleccionar_empleado_y_duracion()
+                    empleado, duracion, hora \
+                        = self.seleccionar_empleado_y_duracion()
                     storage.nueva_tarea(empleado, linea, duracion, fecha, hora)
                     self.refresh_escena()
 
