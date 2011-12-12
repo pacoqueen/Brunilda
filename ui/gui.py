@@ -38,7 +38,10 @@ class Ventana:
         self.slider.get_layout().set_font_description(
             pango.FontDescription("monospace 8"))
         for i in range(31, 365, 31):
-            self.slider.add_mark(i, gtk.POS_TOP, None)
+            try:
+                self.slider.add_mark(i, gtk.POS_TOP, None)
+            except AttributeError:
+                pass    # Versión de pygtk sin add_mark
         self.lower_controls.add(self.slider)
         self.slider.connect("value-changed", self._update_zoom)
         days = (max(tareas, key = lambda t: t.fin).fin  

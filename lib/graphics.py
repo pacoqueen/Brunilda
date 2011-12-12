@@ -1614,7 +1614,10 @@ class Scene(gtk.DrawingArea):
                 aspect_x = aspect_y = min(aspect_x, aspect_y)
             context.scale(aspect_x, aspect_y)
 
-        self.mouse_x, self.mouse_y, mods = self.get_window().get_pointer()
+        try:
+            self.mouse_x, self.mouse_y, mods = self.get_window().get_pointer()
+        except AttributeError:  # Versión pygtk antigua
+            self.mouse_x, self.mouse_y, mods = self.window.get_pointer()
 
         self._redraw_in_progress = True
 
