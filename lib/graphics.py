@@ -780,7 +780,10 @@ class Sprite(gtk.Object):
             context.append_path(path)
         context.identity_matrix()
 
-        ext = context.path_extents()
+        try:
+            ext = context.path_extents()
+        except AttributeError:# ¿pycairo desfasado? Esto es más lento, pero...
+            ext = context.fill_extents()
         ext = gtk.gdk.Rectangle(int(ext[0]), int(ext[1]),
                                 int(ext[2] - ext[0]), int(ext[3] - ext[1]))
 
@@ -1628,7 +1631,10 @@ class Scene(gtk.DrawingArea):
         if self.tweener:
             self.tweener.update(delta)
 
-        self.fps = 1 / delta
+        try:
+            self.fps = 1 / delta
+        except ZeroDivisionError:
+            self.fps = 24   # Arbitrario. Por no poner infinito ni max(int).
 
 
         # start drawing

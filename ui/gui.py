@@ -44,8 +44,11 @@ class Ventana:
                 pass    # Versión de pygtk sin add_mark
         self.lower_controls.add(self.slider)
         self.slider.connect("value-changed", self._update_zoom)
-        days = (max(tareas, key = lambda t: t.fin).fin  
-                - min(tareas, key = lambda t: t.ini).ini).days
+        if not tareas:
+            days = 0
+        else:
+            days = (max(tareas, key = lambda t: t.fin).fin  
+                    - min(tareas, key = lambda t: t.ini).ini).days
         self.scrollbar = gtk.HScrollbar()
         self.adj_scroll = gtk.Adjustment(0, 0, days + 10, 1, 10, 10)
         self.scrollbar.set_adjustment(self.adj_scroll)
@@ -112,11 +115,15 @@ class Ventana:
 
     def load_escena(self):
         # Premature optimization is the root of all evil. Pero más adelante tal vez debería estringir las tareas únicamente al zoom_level, para no tener que cargar todas en memoria si no las voy a mostrar.
+        lineas = storage.get_all_areas()
+        empleados = storage.get_all_empleados()
         if self.vista_por_empleado:
-            self.escena = Scene(self.tareas, self.zoom_level, self.first_day)
+            self.escena = Scene(self.tareas, self.zoom_level, self.first_day, 
+                                lineas = lineas, empleados = empleados)
         else:
             self.escena = ScenePorArea(self.tareas, self.zoom_level, 
-                                       self.first_day)
+                                       self.first_day, 
+                                       lineas = lineas, empleados = empleados)
         self.popup_menu = self.build_popup_menu()
         # From http://faq.pygtk.org/index.py?req=show&file=faq11.002.htp
         self.popup_menu.attach_to_widget(self.escena, lambda *args, **kw: None)

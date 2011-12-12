@@ -56,7 +56,6 @@ class Empleado(object):
         res = {'nombre': self.nombre}
         return res
 
-
 class Area(object):
     _instances = {}
     def __new__(cls, nombre, *args, **kw):

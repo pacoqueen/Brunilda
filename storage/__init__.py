@@ -103,3 +103,9 @@ def modificar(item, *args):
         raise NotImplemented, "Operación no implementada para el ítem %s" % (
             item)
 
+def get_all_areas():
+    return [Area(a) for a in backend.data.areas.find()]
+
+def get_all_empleados():
+    return [Empleado(e) for e in backend.data.empleados.find()]
+

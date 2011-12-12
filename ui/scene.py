@@ -20,9 +20,15 @@ class Scene(graphics.Scene):
     «data» son tareas con un empleado, un área, una hora de inicio y una 
     duración.
     """
-    def __init__(self, data = [], zoom_level = None, first_day = None):
+    def __init__(self, data = [], zoom_level = None, first_day = None, 
+                 show_empty = True, lineas = [], empleados = []):
+        # show_empty va a consultar empleados y líneas directamente del 
+        # almacén de datos, no extrayéndolos de las tareas.
         self.zoom_level = zoom_level
         self.first_day = first_day
+        self.show_empty = show_empty
+        self.lineas = lineas
+        self.empleados = empleados
         graphics.Scene.__init__(self)
         self.width = 500
         self.load_data(data)
@@ -32,8 +38,8 @@ class Scene(graphics.Scene):
     def load_data(self, data = None):
         self.day_counts = defaultdict(list)
         lineas, empleados = defaultdict(int), defaultdict(int)
-        if data: # Si no recibo datos, uso los que ya tengo (o debería tener).
-            self.data = data
+        if data is not None:    # Si no recibo datos uso los que ya 
+            self.data = data    # tengo (o debería tener).
         self.data.sort(key = lambda i: i.ini)
         for tarea in self.data:
             self.day_counts[tarea.ini.date()].append(tarea)
@@ -43,10 +49,11 @@ class Scene(graphics.Scene):
             #if tarea.fin and tarea.ini.date() != tarea.fin.date():
             #    self.day_counts[tarea.fin.date()].append(tarea)
         # XXX self._lineas = lineas   # Esto es para las clases derivadas.
-        self.lineas = [area[0] for area in sorted(lineas.items(), 
+        if not self.show_empty:
+            self.lineas = [area[0] for area in sorted(lineas.items(), 
                                                   key=lambda item:item[1], 
                                                   reverse=True)]
-        self.empleados = empleados.keys()
+            self.empleados = empleados.keys()
         self.empleados.sort(key = lambda e: e.nombre)
         self.lineas.sort(key = lambda a: a.nombre)
         self.bars = {}
@@ -79,8 +86,12 @@ class Scene(graphics.Scene):
                                             day = self.end_date.day) 
             self.end_datetime += dt.timedelta(6 / 24.0)
         else:
-            self.start_date = self.end_date = self.start_datetime \
-                = self.end_datetime = None
+            self.start_date = dt.date(dt.date.today().year, 1, 1)
+            self.start_datetime = dt.datetime(dt.date.today().year, 1, 1, 6)
+            self.end_date = dt.date(dt.date.today().year + 1, 1, 1)
+            self.end_datetime = dt.datetime(dt.date.today().year + 1, 1, 1, 6)
+            #self.start_date = self.end_date = self.start_datetime \
+            #    = self.end_datetime = None
 
     def reload_data(self, new_data, event = None):
         """
@@ -223,7 +234,7 @@ class Scene(graphics.Scene):
         self.add_child(portion)
 
     def on_enter_frame(self, scene, context):
-        if not self.data:
+        if not self.data and not self.show_empty:
             return
         self.context = context  # XXX
         g = graphics.Graphics(context)
@@ -589,7 +600,7 @@ class ScenePorArea(Scene):
         self.bars[tarea] = bar
 
     def on_enter_frame(self, scene, context):
-        if not self.data:
+        if not self.data and not self.show_empty:
             return
         g = graphics.Graphics(context)
         g.set_line_style(width=1)

@@ -21,3 +21,4 @@
 [X] BUG: El último empleado y la última línea no se pueden asignar porque falla la función get_active_empleado_or_linea.
 [X] Mostrar en el diálogo de asignación el empleado/línea que se va a asignar para que el usuario esté seguro de dónde ha pinchado.
 [ ] Evitar asignar el mismo empleado más de una vez a la misma hora y en la misma línea, así como ponerlo en dos líneas a la vez. Tal vez el "se_solapa" de sample me pueda valer.
+[ ] Falta un scroll horizontal
