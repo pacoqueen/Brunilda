@@ -15,11 +15,11 @@ DBERROR = 1
 
 # Primero, conectamos.
 try:
-    #conn = Connection()                     # XXX: Comentar en producción.
-    conn = Connection("192.168.1.100")    # XXX: Descomentar en producción.
+    conn = Connection()                     # XXX: Comentar en producción.
+    #conn = Connection("192.168.1.100")    # XXX: Descomentar en producción.
 except Exception, e:
     txterror = "No se pudo conectar a la base de datos.\n"\
-               "¿Está mongod ejecutándose?\nExcepción: %s" % e
+               "¿Está mongod ejecutándose?\nExcepción: %s\n" % e
     sys.stderr.write(txterror)
     sys.exit(DBERROR)
 
