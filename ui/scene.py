@@ -266,7 +266,7 @@ class Scene(graphics.Scene):
             hline.y = 27 + len(self.empleados) * alto_bar
             self.grid.append(hline)
             self.add_child(hline)
-        offset_labels = max(anchos_empleados) + 5 # píxeles. Pero reales, no 
+        offset_labels = max(anchos_empleados or [0]) + 5 # píxeles. Pero reales, no 
             # los píxeles de la escena (day_pixel & co.), que no van 1:1. 
         lanno = graphics.Label(`self.start_date.year`, 16, "#999")
         offset_labels = max(offset_labels, 
