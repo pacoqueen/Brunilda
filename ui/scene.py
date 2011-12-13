@@ -252,7 +252,7 @@ class Scene(graphics.Scene):
             ancho_label_total = self.create_label_total(empleado, alto_label, 
                                                         alto_bar)
             anchos_totales.append(ancho_label_total)
-        offset_totales = max(anchos_totales) + 5    # Por la derecha.
+        offset_totales = max(anchos_totales or 0) + 5    # Por la derecha.
         for empleado in self.empleados:
             ancho_label_nombre = self.create_label_empleado(empleado, 
                                                             alto_label, 
