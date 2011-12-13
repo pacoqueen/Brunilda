@@ -305,7 +305,7 @@ class Ventana:
                     # con delta voy a redondear a las horas de los turnos.
                     hini = b.tarea.ini.hour - 2
                     delta = -2
-                    while hini not in horas_inicio_validas:
+                    while abs(hini % 24) not in horas_inicio_validas:
                         delta -= 2
                         hini -= 2
                     # self.mover_barra_tarea(b, -2)
@@ -313,7 +313,7 @@ class Ventana:
                 elif x > pivote:
                     hini = b.tarea.ini.hour + 2
                     delta = 2
-                    while hini not in horas_inicio_validas:
+                    while hini % 24 not in horas_inicio_validas:
                         delta += 2
                         hini += 2
                     # self.mover_barra_tarea(b, +2)
@@ -330,14 +330,7 @@ class Ventana:
         storage.modificar(obj_tarea, 
                           ('fecha', 
                            obj_tarea.fecha + delta))
-        pixels = self.escena.hour_pixel * horas
-        barra.x += pixels
-        #self.refresh_escena()
-        # Tengo que actualizar el dato que guarda la escena. Creo que es más
-        # rápido que volver a recrear la gráfica completa. 
-        for t in self.escena.data:
-            if t == obj_tarea:
-                t.fecha += datetime.timedelta(hours=horas)
+        self.refresh_escena()
 
 def dialogo_entrada_combo(titulo = 'Seleccione una opción', 
                           texto = '', 

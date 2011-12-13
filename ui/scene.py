@@ -201,7 +201,8 @@ class Scene(graphics.Scene):
         duracion_tarea_horas = duracion_tarea_segundos / 60 / 60
         bar_ancho = self.hour_pixel * duracion_tarea_horas
         bar = graphics.Rectangle(bar_ancho, alto_bar, 
-                fill = color_por_area(tarea.area, self.lineas), 
+                fill = color_por_area(tarea.area, self.lineas, 
+                                      tarea.fecha.hour), 
                 stroke = "#aaa")
         # cur_x está siempre en las 00:00. Avanzo hasta la hora de 
         # inicio real. 
@@ -482,16 +483,23 @@ class Scene(graphics.Scene):
         return dia
 
 
-def color_por_area(area, areas):
+def color_por_area(area, areas, hora = None):
     """
     Devuelve un color único por cada línea.
+    Si se especifica hora, aclara u oscurece el color en función de si es 
+    antes o después de las 14:00.
     """
     # TODO: Único, lo que se dice único... como haya más áreas que 
     # colores harcoded, lo llevas claro.
     indice = sorted(areas).index(area)
+    #colores = ["#339", "#77a", "#66b", "#55c", "#44d", 
+    #           "#22e", "#88f", "#8ad", "#8ae", "#8af"]
+# PORASQUI: No sé cómo bien todavía como aclarar u oscurecer el color sin pasarme por arriba o por abajo en los componentes r, g, b.
     colores = ["#339", "#77a", "#66b", "#55c", "#44d", 
                "#22e", "#88f", "#8ad", "#8ae", "#8af"]
     color = colores[indice % len(colores)]
+    if hora:
+    color = color.to_string() 
     return color
 
 def color_tarea(tarea, z):

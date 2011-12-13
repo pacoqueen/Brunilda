@@ -21,7 +21,7 @@
 [X] BUG: El último empleado y la última línea no se pueden asignar porque falla la función get_active_empleado_or_linea.
 [X] Mostrar en el diálogo de asignación el empleado/línea que se va a asignar para que el usuario esté seguro de dónde ha pinchado.
 [ ] Evitar asignar el mismo empleado más de una vez a la misma hora y en la misma línea, así como ponerlo en dos líneas a la vez. Tal vez el "se_solapa" de sample me pueda valer.
-[ ] Falta un scroll horizontal
+[ ] Falta un scroll horizontal cuando hay más empleados que alto del DrawingArea.
 [ ] Calendario de vacaciones para las líneas donde no se pueden asignar empleados. Cada línea un calendario independiente.
 [ ] Asignar por lotes: seleccionar patrón y rellenar todo el año del empleado. Pro ejemplo: 5x2 (5 turnos seguidos y dos de descanso).
 [ ] Colores para cada línea de más claro a más oscuro dependiendo del turno. P. ej.: Gtx. rojo: rojo claro en turno de 6:00, rojo medio en 14 y oscuro en noche.
@@ -37,3 +37,5 @@
     * Total horas noches.
     * Total horas recuperación (las que pasasn de las 40 semanales, se acumulan .
     * Horas extra anuales (las que pasan de las anuales, contando recuperación)
+[ ] Permitir que el empleado y la fecha también sea modificable en el diálogo de asignar. Por defecto serán los datos que ahora están fijos en el label, pero mediante un desplegable o "algo", que se pueda cambiar para así poder asignar tareas fuera del rango mostrado.
+[ ] Se debe también dejar que el scroll se desplace a fechas fuera del rango de self.data para poder desplazarnos a años futuros que todavía no tienen tareas.
